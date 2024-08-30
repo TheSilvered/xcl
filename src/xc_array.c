@@ -1,5 +1,6 @@
 #include "xc.h"
 #include <string.h>
+#include <stdio.h>
 
 #define MIN_ARRAY_SIZE 8
 #define SORT_RUN_SIZE 32
@@ -10,7 +11,7 @@ XCArray *xcArrayNew(usize unitSize, usize reserve) {
     if (!array)
         return NULL;
 
-    array->data = malloc(MIN_ARRAY_SIZE > reserve ? MIN_ARRAY_SIZE : reserve, sizeof(void *));
+    array->data = malloc((MIN_ARRAY_SIZE > reserve ? MIN_ARRAY_SIZE : reserve) * unitSize);
     if (!array->data) {
         free(array);
         return NULL;
@@ -67,7 +68,7 @@ void *xcArrayGet(XCArray *array, isize index) {
 }
 
 void _xcArraySetFast(XCArray *array, void *value, usize index) {
-    memcpy(xcArrayGetFast(array, index), value, array->unitSize);
+    memcpy(_xcArrayGetFast(array, index), value, array->unitSize);
 }
 
 XCBool xcArraySet(XCArray *array, void *value, isize index, XCDestructor itemDestroyFunc) {
@@ -174,7 +175,7 @@ static void _xcInsertionSort(XCArray *array, XCComparator compareFunc, usize sta
         usize finalIndex = i;
         for (usize j = i - 1; j >= start; j--) {
             void *sortedValue = _xcArrayGetFast(array, j);
-            if (compareFunc(movingValue, sortedValue) == XC_CR_GREATER_THAN)
+            if (compareFunc(movingValue, sortedValue) == XC_CR_LESS_THAN)
                 finalIndex = j;
         }
         _xcArrayMoveFast(array, i, finalIndex);
@@ -203,10 +204,10 @@ static void _xcInPlaceMergeSort(XCArray *array, XCComparator compareFunc, usize 
 
 static void _xcMergeSort(u8 *tempBuf, XCArray *array, XCComparator compareFunc, usize start, usize middle, usize end) {
     // Skip already sorted initial items
+    void *middleValue = _xcArrayGetFast(array, middle);
     while (start < middle) {
-        void *a = _xcArrayGetFast(array, start);
-        void *b = _xcArrayGetFast(array, middle);
-        if (compareFunc(a, b) == XC_CR_GREATER_THAN)
+        void *startValue = _xcArrayGetFast(array, start);
+        if (compareFunc(startValue, middleValue) == XC_CR_GREATER_THAN)
             break;
         start++;
     }
@@ -257,7 +258,7 @@ void xcArraySort(XCArray *array, XCComparator compareFunc) {
         for (usize start = 0; start < arrLen; start += size * 2) {
             usize middle = start + size;
             usize end = start + size * 2;
-            if (end >= arrLen)
+            if (middle >= arrLen)
                 break;
             if (end > arrLen)
                 end = arrLen;
