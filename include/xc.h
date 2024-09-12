@@ -6,12 +6,14 @@
 #endif // !XCLIB
 
 #include <stddef.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 // ------------------------
 // Utility macros
 // ------------------------
 
+// Get the offset in bytes of a field in a struct
 #define xcFieldOffset(struct, field) (usize)(&(((struct *)NULL)->field))
 
 // ------------------------
@@ -33,17 +35,6 @@ typedef ptrdiff_t usize;
 
 typedef float  f32;
 typedef double f64;
-
-typedef enum XCComparisonResult {
-    XC_CR_EQUAL,
-    XC_CR_LESS_THAN,
-    XC_CR_GREATER_THAN
-} XCComparisonResult;
-
-typedef enum XCBool {
-    False,
-    True
-} XCBool;
 
 // ------------------------
 // Memory allocation
@@ -70,33 +61,33 @@ void XCDebug_free(void *block);
 // ------------------------
 
 // `XCComparator` for `int`
-XCLIB XCComparisonResult xcCompare_int(int *a, int *b);
+XCLIB int xcCompare_int(void *a, void *b);
 // `XCComparator` for `uint`
-XCLIB XCComparisonResult xcCompare_uint(uint *a, uint *b);
+XCLIB int xcCompare_uint(void *a, void *b);
 // `XCComparator` for `i8`
-XCLIB XCComparisonResult xcCompare_i8(i8 *a, i8 *b);
+XCLIB int xcCompare_i8(void *a, void *b);
 // `XCComparator` for `u8`
-XCLIB XCComparisonResult xcCompare_u8(u8 *a, u8 *b);
+XCLIB int xcCompare_u8(void *a, void *b);
 // `XCComparator` for `i16`
-XCLIB XCComparisonResult xcCompare_i16(i16 *a, i16 *b);
+XCLIB int xcCompare_i16(void *a, void *b);
 // `XCComparator` for `u16`
-XCLIB XCComparisonResult xcCompare_u16(u16 *a, u16 *b);
+XCLIB int xcCompare_u16(void *a, void *b);
 // `XCComparator` for `i32`
-XCLIB XCComparisonResult xcCompare_i32(i32 *a, i32 *b);
+XCLIB int xcCompare_i32(void *a, void *b);
 // `XCComparator` for `u32`
-XCLIB XCComparisonResult xcCompare_u32(u32 *a, u32 *b);
+XCLIB int xcCompare_u32(void *a, void *b);
 // `XCComparator` for `i64`
-XCLIB XCComparisonResult xcCompare_i64(i64 *a, i64 *b);
+XCLIB int xcCompare_i64(void *a, void *b);
 // `XCComparator` for `u64`
-XCLIB XCComparisonResult xcCompare_u64(u64 *a, u64 *b);
+XCLIB int xcCompare_u64(void *a, void *b);
 // `XCComparator` for `isize`
-XCLIB XCComparisonResult xcCompare_isize(isize *a, isize *b);
+XCLIB int xcCompare_isize(void *a, void *b);
 // `XCComparator` for `usize`
-XCLIB XCComparisonResult xcCompare_usize(usize *a, usize *b);
+XCLIB int xcCompare_usize(void *a, void *b);
 // `XCComparator` for `f32`
-XCLIB XCComparisonResult xcCompare_f32(f32 *a, f32 *b);
+XCLIB int xcCompare_f32(void *a, void *b);
 // `XCComparator` for `f64`
-XCLIB XCComparisonResult xcCompare_f64(f64 *a, f64 *b);
+XCLIB int xcCompare_f64(void *a, void *b);
 
 // ------------------------
 // Dynamic arrays
@@ -111,33 +102,63 @@ typedef struct XCArray {
 } XCArray;
 
 // A function that compares two values given their pointers
-typedef XCComparisonResult (*XCComparator)(void *, void *);
+// ret < 0 means that a < b
+// ret > 0 means that a > b
+// ret == 0 means that a == b
+typedef int (*XCComparator)(void *a, void *b);
 // A function that destroys a value given its pointer
 typedef void (*XCDestructor)(void *);
 
+// === Creation & Initialization ===
+
+// Initialize an `XCArray` that contains values of size `unitSize`.
+// Use `reserve` to pre-allocate a certain number of slots.
+XCLIB bool xcArrayInit(XCArray *array, usize unitSize, usize reserve);
+// Initialize a new `XCArray` by copying the data of an existing array.
+XCLIB bool xcArrayInitFromCopy(XCArray *array, usize unitSize, usize count, void *data);
+// Initialize a new `XCArray` by using the `data` argument as the `data` field.
+// Note that `data` must be a pointer to a heap-allocated block as it may be reallocted.
+XCLIB void xcArrayInitFromData(XCArray *array, usize unitSize, usize count, void *data);
 // Create a new `XCArray` that contains values of size `unitSize`.
 // Use `reserve` to pre-allocate a certain number of slots.
 XCLIB XCArray *xcArrayNew(usize unitSize, usize reserve);
+// Create a new `XCArray` by copying the data of an existing array.
+XCLIB XCArray *xcArrayNewFromCopy(usize unitSize, usize count, void *data);
+// Create a new `XCArray` by using the `data` argument as the `data` field.
+// Note that `data` must be a pointer to a heap-allocated block as it may be reallocted.
+XCLIB XCArray *xcArrayNewFromData(usize unitSize, usize count, void *data);
+
+// === Destruction ===
+
+// Destroys an `XCArray`, the array itself is not freed. All remaining items are passed to `itemDestroyFunc`.
+// `itemDestroyFunc` may be `NULL`.
+XCLIB void xcArrayDestroy(XCArray *array, XCDestructor itemDestroyFunc);
+// Frees an `XCArray` from memory. All remaining items are passed to `itemDestroyFunc`.
+// `itemDestroyFunc` may be `NULL`.
+XCLIB void xcArrayFree(XCArray *array, XCDestructor itemDestroyFunc);
+
+// === Item manipulation ===
+
 // Append a value to an `XCArray`, the data is copied from `value` to the array.
 // If the memory allocation fails `False` is returned.
-XCLIB XCBool xcArrayAppend(XCArray *array, void *value);
+XCLIB bool xcArrayAppend(XCArray *array, void *value);
 // Get the pointer to a value in an `XCArray`. `index` may be negative.
 // If `index` is outisde the array `NULL` will be returned.
 XCLIB void *xcArrayGet(XCArray *array, isize index);
 // Set a value in an `XCArray`, the previous value is passed to `itemDestroyFunc`.
 // `index` may be negative and `itemDestroyFunc` may be `NULL`.
 // If `index` is outisde the array `False` will be returned.
-XCLIB XCBool xcArraySet(XCArray *array, void *value, isize index, XCDestructor itemDestroyFunc);
+XCLIB bool xcArraySet(XCArray *array, void *value, isize index, XCDestructor itemDestroyFunc);
 // Remove a value from an `XCArray`, the removed value is passed to `itemDestroyFunc`.
 // `index` may be negative and `itemDestroyFunc` may be `NULL`.
 // If `index` is outisde the array `False` will be returned.
-XCLIB XCBool xcArrayRemove(XCArray *array, isize index, XCDestructor itemDestroyFunc);
+XCLIB bool xcArrayRemove(XCArray *array, isize index, XCDestructor itemDestroyFunc);
 // Swap two values in an `XCArray`. `index1` and `index2` may be negative.
 // If `index1` or `index2` is outisde the array `False` will be returned.
-XCLIB XCBool xcArraySwap(XCArray *array, isize index1, isize index2);
+XCLIB bool xcArraySwap(XCArray *array, isize index1, isize index2);
 // Move a value in an `XCArray` from `from` to `to`. `from` and `to` may be negative.
 // If `from` or `to` is outisde the array `False` will be returned.
-XCLIB XCBool xcArrayMove(XCArray *array, isize from, isize to);
+XCLIB bool xcArrayMove(XCArray *array, isize from, isize to);
 // Sorts an `XCArray` using `compareFunc`
 XCLIB void xcArraySort(XCArray *array, XCComparator compareFunc);
 // Iterates through the values of an `xcArray`.
@@ -152,8 +173,30 @@ XCLIB usize xcArrayCount(XCArray *array, void *value, XCComparator compareFunc);
 // `itemDestroyFunc` may be `NULL`.
 // Returns the number of occurrences removed.
 XCLIB usize xcArrayRemoveAll(XCArray *array, void *value, XCComparator compareFunc, XCDestructor itemDestroyFunc);
-// Frees an `XCArray` from memory. All remaining items are passed to `itemDestroyFunc`.
-// `itemDestroyFunc` may be `NULL`.
-XCLIB void xcArrayDestroy(XCArray *array, XCDestructor itemDestroyFunc);
+
+// -----------------------------
+// Strings & string manipulation
+// -----------------------------
+
+// UTF-8 encoded string
+typedef struct XCStr {
+    char *data; // string data
+    usize len;  // length in bytes of `data`
+    usize cap;  // capacity in bytes of `data`
+} XCStr;
+
+typedef struct XCStrView {
+    char *data;
+    usize len;
+} XCStrView;
+
+// A type that can contain any Unicode Codepoint
+typedef u32 XCCodepoint;
+
+XCLIB bool xcStrInitEmpty(XCStr *str);
+// Create a new `XCStr` from a NUL-terminated string, the value is copied
+XCLIB bool xcStrInit(XCStr *str, const char *value);
+// Create a new `XCStr` by copying another string
+XCLIB XCStr *xcStrCopy(XCStr *value);
 
 #endif // !XC_H

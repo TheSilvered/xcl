@@ -6,32 +6,72 @@
 #define SORT_RUN_SIZE 32
 #define STATIC_BUF_SIZE 64
 
+bool xcArrayInit(XCArray *array, usize unitSize, usize reserve) {
+    array->data = malloc((MIN_ARRAY_SIZE > reserve ? MIN_ARRAY_SIZE : reserve) * unitSize);
+    if (!array->data)
+        return false;
+    array->cap = reserve;
+    array->len = 0;
+    array->unitSize = unitSize;
+    return true;
+}
+
+bool xcArrayInitFromCopy(XCArray *array, usize unitSize, usize count, void *data) {
+    if (!xcArrayInit(array, unitSize, count))
+        return false;
+    memcpy(array->data, data, unitSize * count);
+    array->len = count;
+    return true;
+}
+
+void xcArrayInitFromData(XCArray *array, usize unitSize, usize count, void *data) {
+    array->data = data;
+    array->cap = count;
+    array->len = count;
+    array->unitSize = unitSize;
+    return true;
+}
+
 XCArray *xcArrayNew(usize unitSize, usize reserve) {
     XCArray *array = (XCArray *)malloc(sizeof(XCArray));
     if (!array)
         return NULL;
-
-    array->data = malloc((MIN_ARRAY_SIZE > reserve ? MIN_ARRAY_SIZE : reserve) * unitSize);
-    if (!array->data) {
+    if (!xcArrayInit(array, unitSize, reserve)) {
         free(array);
         return NULL;
     }
-    array->cap = reserve;
-    array->len = 0;
-    array->unitSize = unitSize;
     return array;
 }
 
-static XCBool _xcArrayExpand(XCArray *array) {
+XCArray *xcArrayNewFromCopy(usize unitSize, usize count, void *data) {
+    XCArray *array = (XCArray *)malloc(sizeof(XCArray));
+    if (!array)
+        return NULL;
+    if (!xcArrayInitFromCopy(array, unitSize, count, data)) {
+        free(array);
+        return NULL;
+    }
+    return array;
+}
+
+XCArray *xcArrayNewFromData(usize unitSize, usize count, void *data) {
+    XCArray *array = (XCArray *)malloc(sizeof(XCArray));
+    if (!array)
+        return NULL;
+    xcArrayInitFromData(array, unitSize, count, data);
+    return array;
+}
+
+static bool _xcArrayExpand(XCArray *array) {
     if (array->len < array->cap)
-        return True;
+        return true;
     usize newCap = (usize)((double)array->cap * 1.5);
     void *newData = realloc(array->data, newCap * array->unitSize);
     if (!newData)
-        return False;
+        return false;
     array->data = newData;
     array->cap = newCap;
-    return True;
+    return true;
 }
 
 static void _xcArrayShrink(XCArray *array) {
@@ -47,12 +87,12 @@ static void _xcArrayShrink(XCArray *array) {
     array->cap = newCap;
 }
 
-XCBool xcArrayAppend(XCArray *array, void *value) {
+bool xcArrayAppend(XCArray *array, void *value) {
     if (!_xcArrayExpand(array))
-        return False;
+        return false;
     memcpy((u8 *)array->data + array->len * array->unitSize, value, array->unitSize);
     array->len++;
-    return True;
+    return true;
 }
 
 void *_xcArrayGetFast(XCArray *array, usize index) {
@@ -71,19 +111,20 @@ void _xcArraySetFast(XCArray *array, void *value, usize index) {
     memcpy(_xcArrayGetFast(array, index), value, array->unitSize);
 }
 
-XCBool xcArraySet(XCArray *array, void *value, isize index, XCDestructor itemDestroyFunc) {
+bool xcArraySet(XCArray *array, void *value, isize index, XCDestructor itemDestroyFunc) {
     void *arrayValue = xcArrayGet(array, index);
     if (!arrayValue)
-        return False;
+        return false;
     if (itemDestroyFunc)
         itemDestroyFunc(arrayValue);
     memcpy(arrayValue, value, array->unitSize);
+    return true;
 }
 
-XCBool xcArrayRemove(XCArray *array, isize index, XCDestructor itemDestroyFunc) {
+bool xcArrayRemove(XCArray *array, isize index, XCDestructor itemDestroyFunc) {
     void *value = xcArrayGet(array, index);
     if (!value)
-        return False;
+        return false;
     if (itemDestroyFunc)
         itemDestroyFunc(value);
     if (index < 0)
@@ -92,7 +133,7 @@ XCBool xcArrayRemove(XCArray *array, isize index, XCDestructor itemDestroyFunc) 
         memmove(value, (u8 *)value + array->unitSize, (array->len - index - 1) * array->unitSize);
     array->len--;
     _xcArrayShrink(array);
-    return True;
+    return true;
 }
 
 void _xcArraySwapFast(XCArray *array, usize index1, usize index2) {
@@ -114,17 +155,17 @@ void _xcArraySwapFast(XCArray *array, usize index1, usize index2) {
     }
 }
 
-XCBool xcArraySwap(XCArray *array, isize index1, isize index2) {
+bool xcArraySwap(XCArray *array, isize index1, isize index2) {
     if (index1 < 0)
         index1 += array->len;
     if (index2 < 0)
         index2 += array->len;
 
     if (index1 < 0 || index2 >= array->len || index2 < 0 || index2 >= array->len)
-        return False;
+        return false;
 
     _xcArraySwapFast(array, index1, index2);
-    return True;
+    return true;
 }
 
 static void _xcArrayMoveFast(XCArray *array, usize from, usize to) {
@@ -157,16 +198,16 @@ static void _xcArrayMoveFast(XCArray *array, usize from, usize to) {
     }
 }
 
-XCBool xcArrayMove(XCArray *array, isize from, isize to) {
+bool xcArrayMove(XCArray *array, isize from, isize to) {
     if (from < 0)
         from += array->len;
     if (to < 0)
         to += array->len;
     if (from < 0 || from >= array->len || to < 0 || to >= array->len)
-        return False;
+        return false;
 
     _xcArrayMoveFast(array, from, to);
-    return True;
+    return true;
 }
 
 static void _xcInsertionSort(XCArray *array, XCComparator compareFunc, usize start, usize end) {
@@ -175,7 +216,7 @@ static void _xcInsertionSort(XCArray *array, XCComparator compareFunc, usize sta
         usize finalIndex = i;
         for (usize j = i - 1; j >= start; j--) {
             void *sortedValue = _xcArrayGetFast(array, j);
-            if (compareFunc(movingValue, sortedValue) == XC_CR_LESS_THAN)
+            if (compareFunc(movingValue, sortedValue) < 0)
                 finalIndex = j;
         }
         _xcArrayMoveFast(array, i, finalIndex);
@@ -191,7 +232,7 @@ static void _xcInPlaceMergeSort(XCArray *array, XCComparator compareFunc, usize 
     while (i < middle && j < end) {
         void *a = _xcArrayGetFast(array, i);
         void *b = _xcArrayGetFast(array, j);
-        if (compareFunc(a, b) == XC_CR_LESS_THAN) {
+        if (compareFunc(a, b) < 0) {
             i++;
             continue;
         }
@@ -207,7 +248,7 @@ static void _xcMergeSort(u8 *tempBuf, XCArray *array, XCComparator compareFunc, 
     void *middleValue = _xcArrayGetFast(array, middle);
     while (start < middle) {
         void *startValue = _xcArrayGetFast(array, start);
-        if (compareFunc(startValue, middleValue) == XC_CR_GREATER_THAN)
+        if (compareFunc(startValue, middleValue) > 0)
             break;
         start++;
     }
@@ -228,7 +269,7 @@ static void _xcMergeSort(u8 *tempBuf, XCArray *array, XCComparator compareFunc, 
     while (i < middle && j < end) {
         void *a = _xcArrayGetFast(array, i);
         void *b = _xcArrayGetFast(array, j);
-        if (compareFunc(a, b) == XC_CR_GREATER_THAN) {
+        if (compareFunc(a, b) > 0) {
             memcpy(buf + k * unitSize, b, unitSize);
             j++;
         } else {
@@ -281,7 +322,7 @@ void *xcArrayNext(XCArray *array, void *value) {
 usize xcArrayCount(XCArray *array, void *value, XCComparator compareFunc) {
     usize count = 0;
     for (void *v = xcArrayNext(array, NULL); v; v = xcArrayNext(array, v)) {
-        if (compareFunc(v, value) == XC_CR_EQUAL)
+        if (compareFunc(v, value) == 0)
             count++;
     }
     return count;
@@ -292,7 +333,7 @@ usize xcArrayRemoveAll(XCArray *array, void *value, XCComparator compareFunc, XC
     u8 *data = (u8 *)array->data;
     for (usize i = 0, n = array->len; i < n; i++) {
         void *remValue = xcArrayGet(array, i);
-        if (compareFunc(remValue, value) == XC_CR_EQUAL) {
+        if (compareFunc(remValue, value) == 0) {
             removedCount++;
             if (itemDestroyFunc)
                 itemDestroyFunc(remValue);
@@ -310,5 +351,9 @@ void xcArrayDestroy(XCArray *array, XCDestructor itemDestroyFunc) {
             itemDestroyFunc(v);
     }
     free(array->data);
+}
+
+void xcArrayFree(XCArray *array, XCDestructor itemDestroyFunc) {
+    xcArrayDestroy(array, itemDestroyFunc);
     free(array);
 }

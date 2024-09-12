@@ -22,5 +22,6 @@ int main(void) {
     printIntArray(array);
     xcArraySort(array, (XCComparator)xcCompare_int);
     printIntArray(array);
+
     return 0;
 }
