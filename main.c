@@ -7,7 +7,7 @@
 
 void printIntArray(XCArray *array) {
     printf("[ ");
-    for (int *value = (int *)xcArrayNext(array, NULL); value; value = (int *)xcArrayNext(array, (void *)value))
+    for (int *value = xcArrayNext(array, NULL); value; value = xcArrayNext(array, value))
         printf("%d ", *value);
     printf("]\n");
 }
