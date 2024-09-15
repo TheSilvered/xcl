@@ -107,7 +107,7 @@ void *xcArrayGet(XCArray *array, isize index) {
 
 void *xcArrayFind(XCArray *array, void *value, XCComparator compareFunc) {
     for (void *v = xcArrayNext(array, NULL); v; v = xcArrayNext(array, v)) {
-        if (compareFunc(v, value) == 0)
+        if (compareFunc(value, v) == 0)
             return v;
     }
     return NULL;
@@ -122,7 +122,7 @@ usize xcArrayFindAll(XCArray *array, void *value, XCComparator compareFunc, void
     *outBuf = array->data;
     usize count = 0;
     for (void *v = xcArrayNext(array, NULL); v; v = xcArrayNext(array, v)) {
-        if (compareFunc(v, value) == 0) {
+        if (compareFunc(value, v) == 0) {
             if (outBuf && !xcArrayAppend(&foundArr, v))
                 return count;
             count++;
@@ -395,10 +395,10 @@ bool xcArrayDel(XCArray *array, isize index, XCDestructor itemDestroyFunc) {
 }
 
 bool xcArrayRemove(XCArray *array, void *value, XCComparator compareFunc, XCDestructor itemDestroyFunc) {
-    void *value = xcArrayFind(array, value, compareFunc);
-    if (!value)
+    void *ptr = xcArrayFind(array, value, compareFunc);
+    if (!ptr)
         return false;
-    xcArrayDel(array, xcArrayPtrToIdx(array, value), itemDestroyFunc);
+    xcArrayDel(array, xcArrayPtrToIdx(array, ptr), itemDestroyFunc);
     return true;
 }
 
@@ -407,7 +407,7 @@ usize xcArrayRemoveAll(XCArray *array, void *value, XCComparator compareFunc, XC
     u8 *data = (u8 *)array->data;
     for (usize i = 0, n = array->len; i < n; i++) {
         void *remValue = xcArrayGet(array, i);
-        if (compareFunc(remValue, value) == 0) {
+        if (compareFunc(value, remValue) == 0) {
             removedCount++;
             if (itemDestroyFunc)
                 itemDestroyFunc(remValue);

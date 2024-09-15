@@ -1,0 +1,3 @@
+#!/usr/bin/sh
+
+clang -o test test.c ../src/* -I../include && ./test $@

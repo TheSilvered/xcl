@@ -151,10 +151,12 @@ XCLIB void xcArrayFree(XCArray *array, XCDestructor itemDestroyFunc);
 // If `index` is outisde the array `NULL` will be returned.
 XCLIB void *xcArrayGet(XCArray *array, isize index);
 // Find the first item that matches `value` using `compareFunc`.
+// `value` is passed as the first argument of `compareFunc`.
 // If no match is found `NULL` is returned.
 XCLIB void *xcArrayFind(XCArray *array, void *value, XCComparator compareFunc);
 // Get a list of elements that match `value` using `compareFunc` to compare them.
 // `outBuf` is set to the output array, it is heap-allocated and the matching objects are copied into it.
+// `value` is passed as the first argument of `compareFunc`.
 // Return the number of matching objects. If `outBuf` is `NULL` the objects are only counted.
 XCLIB usize xcArrayFindAll(XCArray *array, void *value, XCComparator compareFunc, void **outBuf);
 // Get a list of elements that match using `filterFunc`.
@@ -197,6 +199,7 @@ XCLIB bool xcArrayDel(XCArray *array, isize index, XCDestructor itemDestroyFunc)
 XCLIB bool xcArrayRemove(XCArray *array, void *value, XCComparator compareFunc, XCDestructor itemDestroyFunc);
 // Remove all occurences of `value` in an `XCArray` using `compareFunc` to compare them.
 // An occurrence is counted when `compareFunc` returns `0`.
+// `value` is passed as the first argument of `compareFunc`.
 // `itemDestroyFunc` may be `NULL`.
 // Return the number of occurrences removed.
 XCLIB usize xcArrayRemoveAll(XCArray *array, void *value, XCComparator compareFunc, XCDestructor itemDestroyFunc);
@@ -222,15 +225,19 @@ XCLIB isize xcArrayIdxCheck(XCArray *array, isize idx);
 XCLIB isize xcArrayPtrToIdx(XCArray *array, void *ptr);
 // Assuming `array` is sorted find the index where `value` first appears or where it would need to be
 // inserted to keep the list sorted.
+// `value` is passed as the first argument of `compareFunc`.
 XCLIB usize xcArrayBisect(XCArray *array, void *value, XCComparator compareFunc);
 // Assuming `array` is sorted find the index after the last `value` appears or where it would need to be
 // inserted to keep the list sorted.
+// `value` is passed as the first argument of `compareFunc`.
 XCLIB usize xcArrayBisectRight(XCArray *array, void *value, XCComparator compareFunc);
 // `xcArrayBisect` but with the ability to specify a specific interval.
 // The indices may be negative, if they are outside of `array` then `-1` is returned.
+// `value` is passed as the first argument of `compareFunc`.
 XCLIB isize xcArrayBisectEx(XCArray *array, void *value, XCComparator compareFunc, isize lo, isize hi);
 // `xcArrayBisectRight` but with the ability to specify a specific interval.
 // The indices may be negative, if they are outside of `array` then `-1` is returned.
+// `value` is passed as the first argument of `compareFunc`.
 XCLIB isize xcArrayBisectRightEx(XCArray *array, void *value, XCComparator compareFunc, isize lo, isize hi);
 
 
