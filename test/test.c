@@ -3,7 +3,6 @@
 #include <signal.h>
 #include <time.h>
 #include <string.h>
-#include "test.h"
 #include "all_tests.h"
 
 #ifndef TEST_TIMEOUT_S
@@ -16,6 +15,7 @@
 #define GREEN(s) s
 #define YELLOW(s) s
 #define CYAN(s) s
+#define GRAY(s) s
 
 #else
 
@@ -23,6 +23,7 @@
 #define GREEN(s) "\x1b[92m" s "\x1b[0m"
 #define YELLOW(s) "\x1b[93m" s "\x1b[0m"
 #define CYAN(s) "\x1b[96m" s "\x1b[0m"
+#define GRAY(s) "\x1b[90m" s "\x1b[0m"
 
 #endif
 
@@ -36,26 +37,33 @@ static struct {
 
 static struct {
     clock_t startTime;
-    bool result;
+    TestResult result;
     bool running;
 } currentTest = { 0 };
 
 static void sigChldHandler(int sig);
 static _Noreturn void *threadRoutine(void *func);
-static bool runTest(Test test);
+static TestResult runTest(Test test);
 static void destroyModules(void);
 static const char *parseArguments(int argc, char **argv);
 static Test *findTest(const char *name);
 static TestModule *findModule(const char *name);
-static void runModule(TestModule module);
+static void runModule(TestModule module, int *outPassed, int *outFailed, int *outIgnored);
 
 int main(int argc, char **argv) {
     test_xcArrayInit__addTests();
+    test_xcDebug_BlockSize__addTests();
+    test_xcCompare__addTests();
 
+    int returnValue = 0;
     const char *specifiedTest = parseArguments(argc, argv);
     if (!specifiedTest) {
+        int passed = 0;
+        int failed = 0;
+        int ignored = 0;
         for (usize i = 0; i < modules.count; i++)
-            runModule(modules.list[i]);
+            runModule(modules.list[i], &passed, &failed, &ignored);
+        printf(GRAY("%d passed, %d failed and %d ignored.") "\n", passed, failed, ignored);
         goto cleanup;
     }
 
@@ -69,31 +77,46 @@ int main(int argc, char **argv) {
         LOG_FAILURE("No test or module matches '%s'", specifiedTest);
         goto cleanup;
     }
-    runModule(*moduleFound);
+    runModule(*moduleFound, NULL, NULL, NULL);
 
 cleanup:
     destroyModules();
-    return 0;
+    return returnValue;
 }
 
 static _Noreturn void *threadRoutine(void *func) {
     signal(SIGCHLD, sigChldHandler);
-    currentTest.result = ((bool (*)(void))func)();
+    currentTest.result = ((TestFunc)func)();
     currentTest.running = false;
     while (true); // wait for SIGCHLD
 }
 
-static void runModule(TestModule module) {
+static void runModule(TestModule module, int *outPassed, int *outFailed, int *outIgnored) {
     printf(CYAN("Module '%s' (%zi tests):") "\n", module.name, module.testCount);
     int testsPassed = 0;
+    int testsFailed = 0;
+    int testsIgnored = 0;
     for (usize j = 0; j < module.testCount; j++) {
-        if (runTest(module.tests[j]))
+        switch (runTest(module.tests[j])) {
+        case TR_success:
             testsPassed++;
+            break;
+        case TR_ignored:
+            testsIgnored++;
+            break;
+        case TR_failure:
+        case TR_timedOut:
+        case TR_allocFailed:
+            testsFailed++;
+        }
     }
-    printf(YELLOW("  %d/%zi tests passed.") "\n", testsPassed, module.testCount);
+    printf(YELLOW("  %d passed, %d failed, %d ignored.") "\n", testsPassed, testsFailed, testsIgnored);
+    if (outPassed) *outPassed += testsPassed;
+    if (outFailed) *outFailed += testsFailed;
+    if (outIgnored) *outIgnored += testsIgnored;
 }
 
-static bool runTest(Test test) {
+static TestResult runTest(Test test) {
     printf("  Test '%s'... ", test.name);
     pthread_t thread;
     currentTest.startTime = clock();
@@ -106,16 +129,28 @@ static bool runTest(Test test) {
     }
     while (((double)(clock() - currentTest.startTime)) / CLOCKS_PER_SEC <= TEST_TIMEOUT_S && currentTest.running) ;
     pthread_kill(thread, SIGCHLD);
-    if (currentTest.running) { // test timed out
-        printf(RED("TIMED OUT\n"));
-        return false;
-    } else if (currentTest.result) {
+    if (currentTest.running)
+        currentTest.result = TR_timedOut;
+
+    switch (currentTest.result) {
+    case TR_success:
         printf(GREEN("PASSED\n"));
-        return true;
-    } else {
+        break;
+    case TR_failure:
         printf(RED("FAILED\n"));
-        return false;
+        break;
+    case TR_ignored:
+        printf(GRAY("IGNORED\n"));
+        break;
+    case TR_allocFailed:
+        printf(RED("MEMORY ALLOCATION FAILED\n"));
+        break;
+    case TR_timedOut:
+        printf(RED("TIMED OUT\n"));
+        break;
     }
+
+    return currentTest.result;
 }
 
 static void sigChldHandler(int sig) {

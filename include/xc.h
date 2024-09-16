@@ -44,17 +44,17 @@ typedef double f64;
 
 #ifdef XC_DEBUG_MEM
 
-usize XCDebug_BlockSize(void *block);
+usize xcDebug_BlockSize(void *block);
 
-void *XCDebug_malloc(usize size);
-void *XCDebug_calloc(usize count, usize size);
-void *XCDebug_realloc(void *block, usize size);
-void XCDebug_free(void *block);
+void *xcDebug_malloc(usize size);
+void *xcDebug_calloc(usize count, usize size);
+void *xcDebug_realloc(void *block, usize size);
+void xcDebug_free(void *block);
 
-#define malloc XCDebug_malloc
-#define calloc XCDebug_calloc
-#define realloc XCDebug_realloc
-#define free XCDebug_free
+#define malloc(size) xcDebug_malloc(size)
+#define calloc(count, size) xcDebug_calloc(count, size)
+#define realloc(block, size) xcDebug_realloc(block, size)
+#define free(block) xcDebug_free(block)
 
 #endif
 

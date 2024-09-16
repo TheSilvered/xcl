@@ -1,3 +1,3 @@
 #!/usr/bin/sh
 
-clang -o test test.c ../src/* -I../include && ./test $@
+clang -o test test.c ../src/* -I../include -DXC_DEBUG_MEM && ./test $@

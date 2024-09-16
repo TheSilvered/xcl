@@ -1,3 +1,4 @@
+#include <string.h>
 #include "xc.h"
 
 #ifdef XC_DEBUG_MEM
@@ -14,12 +15,12 @@
 #undef free
 #endif
 
-usize XCDebug_BlockSize(void *block)
+usize xcDebug_BlockSize(void *block)
 {
     return *((usize *)block - 1);
 }
 
-void *XCDebug_malloc(usize size) {
+void *xcDebug_malloc(usize size) {
     void *ptr = malloc(size + sizeof(usize));
     if (!ptr)
         return ptr;
@@ -27,15 +28,15 @@ void *XCDebug_malloc(usize size) {
     return (void *)((usize *)ptr + 1);
 }
 
-void *XCDebug_calloc(usize count, usize size) {
-    void *ptr = XCDebug_malloc(count * size);
+void *xcDebug_calloc(usize count, usize size) {
+    void *ptr = xcDebug_malloc(count * size);
     if (!ptr)
         return ptr;
     memset(ptr, 0, count * size);
     return ptr;
 }
 
-void *XCDebug_realloc(void *block, usize size) {
+void *xcDebug_realloc(void *block, usize size) {
     void *ptr;
     if (block)
         ptr = realloc((usize *)block - 1, size + sizeof(usize));
@@ -47,12 +48,12 @@ void *XCDebug_realloc(void *block, usize size) {
     return (void *)((usize *)ptr + 1);
 }
 
-void XCDebug_free(void *block) {
+void xcDebug_free(void *block) {
     free((usize *)block - 1);
 }
 
-#define malloc XCDebug_malloc
-#define realloc XCDebug_realloc
-#define free XCDebug_free
+#define malloc(size) xcDebug_malloc(size)
+#define realloc(block, size) xcDebug_realloc(block, size)
+#define free(block) xcDebug_free(block)
 
 #endif

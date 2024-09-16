@@ -2,13 +2,24 @@
 #define TEST_H
 
 #include <stdbool.h>
+// XC_DEBUG_MEM defined in command line
 #include "xc.h"
 
 #define TEST(func) (Test) { #func, func }
 
+typedef enum TestResult {
+    TR_failure,
+    TR_success,
+    TR_allocFailed,
+    TR_timedOut,
+    TR_ignored
+} TestResult;
+
+typedef TestResult (*TestFunc)(void);
+
 typedef struct Test {
     const char *name;
-    bool (*func)(void);
+    TestFunc func;
 } Test;
 
 typedef struct TestModule {
