@@ -1,4 +1,4 @@
-#include "test.h"
+#include "../test_lib/test.h"
 
 TestResult test_xcDebug_BlockSize_malloc(void) {
     void *block = malloc(10);
@@ -85,12 +85,12 @@ TestResult test_xcDebug_BlockSize_reallocToEmpty(void) {
 }
 
 void test_xcDebug_BlockSize__addTests(void) {
-    setModule("test_xcDebug_BlockSize");
-    addTest(TEST(test_xcDebug_BlockSize_malloc));
-    addTest(TEST(test_xcDebug_BlockSize_mallocEmpty));
-    addTest(TEST(test_xcDebug_BlockSize_calloc));
-    addTest(TEST(test_xcDebug_BlockSize_callocEmpty));
-    addTest(TEST(test_xcDebug_BlockSize_reallocFromNull));
-    addTest(TEST(test_xcDebug_BlockSize_reallocFromBlock));
-    addTest(TEST(test_xcDebug_BlockSize_reallocToEmpty));
+    testSetModule("test_xcDebug_BlockSize");
+    testAdd(TEST(test_xcDebug_BlockSize_malloc));
+    testAdd(TEST(test_xcDebug_BlockSize_mallocEmpty));
+    testAdd(TEST(test_xcDebug_BlockSize_calloc));
+    testAdd(TEST(test_xcDebug_BlockSize_callocEmpty));
+    testAdd(TEST(test_xcDebug_BlockSize_reallocFromNull));
+    testAdd(TEST(test_xcDebug_BlockSize_reallocFromBlock));
+    testAdd(TEST(test_xcDebug_BlockSize_reallocToEmpty));
 }

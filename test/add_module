@@ -5,14 +5,16 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 
-if [ -e "test_$1.c" ]; then
+$file=./test_modules/test_$1.c
+
+if [ -e $file ]; then
     echo "Module test_$1 already exists."
     exit 1
 fi
 
-touch "./test_$1.c"
-echo "#include \"test.h\"
+touch $file
+echo "#include \"../test_lib/test.h\"
 
 void test_${1}__addTests(void) {
-    setModule(\"test_$1\");
+    testSetModule(\"test_$1\");
 }" >> "./test_$1.c"

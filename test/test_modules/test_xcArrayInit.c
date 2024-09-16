@@ -1,4 +1,4 @@
-#include "test.h"
+#include "../test_lib/test.h"
 
 TestResult test_xcArrayInit_empty(void) {
     XCArray array;
@@ -28,7 +28,7 @@ TestResult test_xcArrayInit_reserve(void) {
 }
 
 void test_xcArrayInit__addTests(void) {
-    setModule("test_xcArrayInit");
-    addTest(TEST(test_xcArrayInit_empty));
-    addTest(TEST(test_xcArrayInit_reserve));
+    testSetModule("test_xcArrayInit");
+    testAdd(TEST(test_xcArrayInit_empty));
+    testAdd(TEST(test_xcArrayInit_reserve));
 }

@@ -1,4 +1,4 @@
-#include "test.h"
+#include "../test_lib/test.h"
 
 TestResult test_xcCompare_int(void) {
     int a = 5, b = 2, c = 5;
@@ -183,19 +183,19 @@ TestResult test_xcCompare_f64(void) {
 }
 
 void test_xcCompare__addTests(void) {
-    setModule("test_xcCompare");
-    addTest(TEST(test_xcCompare_int));
-    addTest(TEST(test_xcCompare_uint));
-    addTest(TEST(test_xcCompare_i8));
-    addTest(TEST(test_xcCompare_u8));
-    addTest(TEST(test_xcCompare_i16));
-    addTest(TEST(test_xcCompare_u16));
-    addTest(TEST(test_xcCompare_i32));
-    addTest(TEST(test_xcCompare_u32));
-    addTest(TEST(test_xcCompare_i64));
-    addTest(TEST(test_xcCompare_u64));
-    addTest(TEST(test_xcCompare_isize));
-    addTest(TEST(test_xcCompare_usize));
-    addTest(TEST(test_xcCompare_f32));
-    addTest(TEST(test_xcCompare_f64));
+    testSetModule("test_xcCompare");
+    testAdd(TEST(test_xcCompare_int));
+    testAdd(TEST(test_xcCompare_uint));
+    testAdd(TEST(test_xcCompare_i8));
+    testAdd(TEST(test_xcCompare_u8));
+    testAdd(TEST(test_xcCompare_i16));
+    testAdd(TEST(test_xcCompare_u16));
+    testAdd(TEST(test_xcCompare_i32));
+    testAdd(TEST(test_xcCompare_u32));
+    testAdd(TEST(test_xcCompare_i64));
+    testAdd(TEST(test_xcCompare_u64));
+    testAdd(TEST(test_xcCompare_isize));
+    testAdd(TEST(test_xcCompare_usize));
+    testAdd(TEST(test_xcCompare_f32));
+    testAdd(TEST(test_xcCompare_f64));
 }

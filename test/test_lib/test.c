@@ -3,31 +3,8 @@
 #include <signal.h>
 #include <time.h>
 #include <string.h>
-#include "all_tests.h"
-
-#ifndef TEST_TIMEOUT_S
-#define TEST_TIMEOUT_S 10
-#endif
-
-#ifdef TEST_NO_COLOR
-
-#define RED(s) s
-#define GREEN(s) s
-#define YELLOW(s) s
-#define CYAN(s) s
-#define GRAY(s) s
-
-#else
-
-#define RED(s) "\x1b[91m" s "\x1b[0m"
-#define GREEN(s) "\x1b[92m" s "\x1b[0m"
-#define YELLOW(s) "\x1b[93m" s "\x1b[0m"
-#define CYAN(s) "\x1b[96m" s "\x1b[0m"
-#define GRAY(s) "\x1b[90m" s "\x1b[0m"
-
-#endif
-
-#define LOG_FAILURE(msg, ...) fprintf(stderr, RED("FAILURE") " - "  msg "\n", ## __VA_ARGS__)
+#include "test.h"
+#include "xc.h"
 
 static struct {
     usize count;
@@ -43,46 +20,7 @@ static struct {
 
 static void sigChldHandler(int sig);
 static _Noreturn void *threadRoutine(void *func);
-static TestResult runTest(Test test);
-static void destroyModules(void);
 static const char *parseArguments(int argc, char **argv);
-static Test *findTest(const char *name);
-static TestModule *findModule(const char *name);
-static void runModule(TestModule module, int *outPassed, int *outFailed, int *outIgnored);
-
-int main(int argc, char **argv) {
-    test_xcArrayInit__addTests();
-    test_xcDebug_BlockSize__addTests();
-    test_xcCompare__addTests();
-
-    int returnValue = 0;
-    const char *specifiedTest = parseArguments(argc, argv);
-    if (!specifiedTest) {
-        int passed = 0;
-        int failed = 0;
-        int ignored = 0;
-        for (usize i = 0; i < modules.count; i++)
-            runModule(modules.list[i], &passed, &failed, &ignored);
-        printf(GRAY("%d passed, %d failed and %d ignored.") "\n", passed, failed, ignored);
-        goto cleanup;
-    }
-
-    Test *testFound = findTest(specifiedTest);
-    if (testFound) {
-        runTest(*testFound);
-        goto cleanup;
-    }
-    TestModule *moduleFound = findModule(specifiedTest);
-    if (!moduleFound) {
-        LOG_FAILURE("No test or module matches '%s'", specifiedTest);
-        goto cleanup;
-    }
-    runModule(*moduleFound, NULL, NULL, NULL);
-
-cleanup:
-    destroyModules();
-    return returnValue;
-}
 
 static _Noreturn void *threadRoutine(void *func) {
     signal(SIGCHLD, sigChldHandler);
@@ -91,13 +29,13 @@ static _Noreturn void *threadRoutine(void *func) {
     while (true); // wait for SIGCHLD
 }
 
-static void runModule(TestModule module, int *outPassed, int *outFailed, int *outIgnored) {
+void testRunModule(TestModule module, int *outPassed, int *outFailed, int *outIgnored) {
     printf(CYAN("Module '%s' (%zi tests):") "\n", module.name, module.testCount);
     int testsPassed = 0;
     int testsFailed = 0;
     int testsIgnored = 0;
     for (usize j = 0; j < module.testCount; j++) {
-        switch (runTest(module.tests[j])) {
+        switch (testRun(module.tests[j])) {
         case TR_success:
             testsPassed++;
             break;
@@ -116,15 +54,15 @@ static void runModule(TestModule module, int *outPassed, int *outFailed, int *ou
     if (outIgnored) *outIgnored += testsIgnored;
 }
 
-static TestResult runTest(Test test) {
+TestResult testRun(Test test) {
     printf("  Test '%s'... ", test.name);
     pthread_t thread;
     currentTest.startTime = clock();
     currentTest.running = true;
     currentTest.result = false;
     if (pthread_create(&thread, NULL, threadRoutine, test.func) != 0) {
-        LOG_FAILURE("Failed to create thread");
-        destroyModules();
+        TEST_LOG_FAILURE("Failed to create thread");
+        testExit();
         exit(1);
     }
     while (((double)(clock() - currentTest.startTime)) / CLOCKS_PER_SEC <= TEST_TIMEOUT_S && currentTest.running) ;
@@ -157,7 +95,7 @@ static void sigChldHandler(int sig) {
     pthread_exit(0);
 }
 
-static void destroyModules(void) {
+void testExit(void) {
     if (!modules.list)
         return;
     for (usize i = 0; i < modules.count; i++) {
@@ -168,11 +106,23 @@ static void destroyModules(void) {
     free(modules.list);
 }
 
-void setModule(const char *name) {
+bool testIsFailure(TestResult result) {
+    switch (result) {
+    case TR_success:
+    case TR_ignored:
+        return false;
+    case TR_failure:
+    case TR_timedOut:
+    case TR_allocFailed:
+        return true;
+    }
+}
+
+void testSetModule(const char *name) {
     TestModule *newModules = realloc(modules.list, (modules.count + 1) * sizeof(TestModule));
     if (!newModules) {
-        LOG_FAILURE("Allocation failed when setting module '%s'", name);
-        destroyModules();
+        TEST_LOG_FAILURE("Allocation failed when setting module '%s'", name);
+        testExit();
         exit(1);
     }
 
@@ -184,16 +134,16 @@ void setModule(const char *name) {
     modules.current->tests = NULL;
 }
 
-void addTest(Test test) {
+void testAdd(Test test) {
     if (!modules.current) {
-        LOG_FAILURE("Trying to add test '%s' without a module set", test.name);
-        destroyModules(); // This should do nothing
+        TEST_LOG_FAILURE("Trying to add test '%s' without a module set", test.name);
+        testExit(); // This should do nothing
         exit(1);
     }
     Test *newTests = realloc(modules.current->tests, (modules.current->testCount + 1) * sizeof(Test));
     if (!newTests) {
-        LOG_FAILURE("Allocation failed when adding test '%s' to module '%s'", test.name, modules.current->name);
-        destroyModules();
+        TEST_LOG_FAILURE("Allocation failed when adding test '%s' to module '%s'", test.name, modules.current->name);
+        testExit();
         exit(1);
     }
     modules.current->tests = newTests;
@@ -205,26 +155,26 @@ static const char *parseArguments(int argc, char **argv) {
     if (argc < 2)
         return NULL;
     else if (argc > 2) {
-        LOG_FAILURE("Too many arguments, usage: ./run_tests [test]");
-        destroyModules();
+        TEST_LOG_FAILURE("Too many arguments, usage: ./run_tests [test]");
+        testExit();
         exit(1);
     }
     return (const char *)argv[1];
 }
 
-static Test *findTest(const char *name) {
+Test *testFind(const char *name) {
     char buf[256] = {0};
     char *slash = strchr(name, '/');
     if (!slash)
         return NULL;
     if (strlen(name) + 6 > 256) {
-        LOG_FAILURE("Given argument is too big to compare");
-        destroyModules();
+        TEST_LOG_FAILURE("Given argument is too big to compare");
+        testExit();
         exit(2);
     }
     memcpy(buf, name, slash - name);
     buf[slash - name] = '\0';
-    TestModule *module = findModule(buf);
+    TestModule *module = testFindModule(buf);
     if (!module)
         return NULL;
 
@@ -241,11 +191,11 @@ static Test *findTest(const char *name) {
     return 0;
 }
 
-static TestModule *findModule(const char *name) {
+TestModule *testFindModule(const char *name) {
     char buf[256];
     if (strlen(name) + 6 > 256) {
-        LOG_FAILURE("Given argument is too big to compare");
-        destroyModules();
+        TEST_LOG_FAILURE("Given argument is too big to compare");
+        testExit();
         exit(2);
     }
     memcpy(buf, "test_", 5);
@@ -257,4 +207,12 @@ static TestModule *findModule(const char *name) {
             return module;
     }
     return NULL;
+}
+
+TestModule *testGetModules(void) {
+    return modules.list;
+}
+
+usize testGetModuleCount(void) {
+    return modules.count;
 }
