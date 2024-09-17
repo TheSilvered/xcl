@@ -241,6 +241,27 @@ XCLIB isize xcArrayBisectEx(XCArray *array, void *value, XCComparator compareFun
 XCLIB isize xcArrayBisectRightEx(XCArray *array, void *value, XCComparator compareFunc, isize lo, isize hi);
 
 
+// ------------------------
+// Boolean array
+// ------------------------
+
+// A compacted boolean array (1 bit per boolean)
+typedef u8 *XCBoolArray;
+// A slot that contains booleans in a boolean array.
+typedef u8 XCBoolArraySlot;
+
+// Gets the number of slots for an `XCBoolArray` of a given size.
+// This can be used to use an array on the stack.
+// For example `XCBoolArraySlot arr[xcBoolArraySize(10)]` creates a boolean array of size `10`.
+#define xcBoolArraySize(length) ((length) / sizeof(XCBoolArraySlot) + ((length) % sizeof(XCBoolArraySlot) ? 1 : 0))
+
+XCLIB XCBoolArray xcBoolArrayNew(usize length);
+XCLIB void xcBoolArrayFree(XCBoolArray array);
+XCLIB bool xcBoolArrayGet(XCBoolArray array, usize idx);
+XCLIB void xcBoolArraySet(XCBoolArray array, usize idx, bool value);
+XCLIB void xcBoolArrayFill(XCBoolArray array, usize length, bool value);
+
+
 // -----------------------------
 // Strings & string manipulation
 // -----------------------------
