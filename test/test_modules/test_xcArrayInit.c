@@ -1,30 +1,30 @@
-#include "../test_lib/test.h"
+#include "test.h"
 
 TestResult test_xcArrayInit_empty(void) {
     XCArray array;
-    bool result = xcArrayInit(&array, sizeof(int), 0);
-    if (!result)
+    TestResult result = TR_success;
+    if (!xcArrayInit(&array, sizeof(int), 0))
         return TR_allocFailed;
-    if (array.len != 0)
-        return TR_failure;
-    if (array.cap != 0)
-        return TR_failure;
-    return TR_success;
+    if (array.len != 0 || array.cap != 0)
+        result = TR_failure;
+    xcArrayDestroy(&array, NULL);
+    return result;
 }
 
 TestResult test_xcArrayInit_reserve(void) {
     XCArray array;
     const usize reserve = 20;
-    bool result = xcArrayInit(&array, sizeof(int), reserve);
-    if (!result)
+    TestResult result = TR_success;
+    if (!xcArrayInit(&array, sizeof(int), reserve))
         return TR_allocFailed;
     if (array.len != 0)
-        return TR_failure;
-    if (array.cap != reserve)
-        return TR_failure;
-    if (xcDebug_BlockSize(array.data) != reserve * sizeof(int))
-        return TR_failure;
-    return TR_success;
+        result = TR_failure;
+    else if (array.cap != reserve)
+        result = TR_failure;
+    else if (xcDebug_BlockSize(array.data) != reserve * sizeof(int))
+        result = TR_failure;
+    xcArrayDestroy(&array, NULL);
+    return result;
 }
 
 void test_xcArrayInit__addTests(void) {

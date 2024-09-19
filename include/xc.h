@@ -172,6 +172,10 @@ XCLIB bool xcArrayAppend(XCArray *array, void *value);
 // Insert a value in an `XCArray`. `index` may be negative`
 // If `index` is outside the array or a memory allocation fails `false` is returned.
 XCLIB bool xcArrayInsert(XCArray *array, void *value, isize index);
+// Extend an `XCArray` with the data in `newData`.
+// `newDataLength` is the number of items in `newData`, the array's `unitSize` is used to
+// determine the size of the memory to copy.
+XCLIB bool xcArrayExtend(XCArray *array, void *newData, usize newDataLength);
 
 // === Item manipulation ===
 
@@ -232,13 +236,13 @@ XCLIB usize xcArrayBisect(XCArray *array, void *value, XCComparator compareFunc)
 // `value` is passed as the first argument of `compareFunc`.
 XCLIB usize xcArrayBisectRight(XCArray *array, void *value, XCComparator compareFunc);
 // `xcArrayBisect` but with the ability to specify a specific interval.
-// The indices may be negative, if they are outside of `array` then `-1` is returned.
-// `value` is passed as the first argument of `compareFunc`.
-XCLIB isize xcArrayBisectEx(XCArray *array, void *value, XCComparator compareFunc, isize lo, isize hi);
+// `lo` may be in the range [0, array->len), and `hi` in the range [0, array->len].
+// If `hi` or `lo` is outside the specified range `-1` is returned.
+XCLIB isize xcArrayBisectEx(XCArray *array, void *value, XCComparator compareFunc, usize lo, usize hi);
 // `xcArrayBisectRight` but with the ability to specify a specific interval.
-// The indices may be negative, if they are outside of `array` then `-1` is returned.
-// `value` is passed as the first argument of `compareFunc`.
-XCLIB isize xcArrayBisectRightEx(XCArray *array, void *value, XCComparator compareFunc, isize lo, isize hi);
+// `lo` may be in the range [0, array->len), and `hi` in the range [0, array->len].
+// If `hi` or `lo` is outside the specified range `-1` is returned.
+XCLIB isize xcArrayBisectRightEx(XCArray *array, void *value, XCComparator compareFunc, usize lo, usize hi);
 
 
 // ------------------------

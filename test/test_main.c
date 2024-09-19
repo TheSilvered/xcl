@@ -1,6 +1,11 @@
 #include "test_lib/test.h"
 
 #include "test_modules/test_xcArrayInit.c"
+#include "test_modules/test_xcArrayInitFromCopy.c"
+#include "test_modules/test_xcArrayInitFromData.c"
+#include "test_modules/test_xcArrayNew.c"
+#include "test_modules/test_xcArrayNewFromCopy.c"
+#include "test_modules/test_xcArrayNewFromData.c"
 #include "test_modules/test_xcCompare.c"
 #include "test_modules/test_xcDebug_BlockSize.c"
 
@@ -9,6 +14,11 @@ static bool runAllModules(void);
 
 int main(int argc, char **argv) {
     test_xcArrayInit__addTests();
+    test_xcArrayInitFromCopy__addTests();
+    test_xcArrayInitFromData__addTests();
+    test_xcArrayNew__addTests();
+    test_xcArrayNewFromCopy__addTests();
+    test_xcArrayNewFromData__addTests();
     test_xcDebug_BlockSize__addTests();
     test_xcCompare__addTests();
 

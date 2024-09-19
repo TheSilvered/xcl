@@ -7,7 +7,7 @@
 #define STATIC_BUF_SIZE 64
 
 static inline void *_xcArrayGetFast(XCArray *array, usize index);
-static inline bool _xcArrayExpand(XCArray *array);
+static inline bool _xcArrayExpand(XCArray *array, usize quantity);
 static inline void _xcArrayShrink(XCArray *array);
 static inline void _xcArraySetFast(XCArray *array, void *value, usize index);
 static inline void _xcArraySwapFast(XCArray *array, usize index1, usize index2);
@@ -151,10 +151,10 @@ usize xcArrayFilter(XCArray *array, XCFilter filterFunc, void **outBuf) {
 
 // === Item addition ===
 
-static inline bool _xcArrayExpand(XCArray *array) {
-    if (array->len < array->cap)
+static inline bool _xcArrayExpand(XCArray *array, usize quantity) {
+    if (array->len + quantity <= array->cap)
         return true;
-    usize newCap = (usize)((double)array->cap * 1.5);
+    usize newCap = (usize)((double)(array->len + quantity) * 1.5);
     void *newData = realloc(array->data, newCap * array->unitSize);
     if (!newData)
         return false;
@@ -177,7 +177,7 @@ static inline void _xcArrayShrink(XCArray *array) {
 }
 
 bool xcArrayAppend(XCArray *array, void *value) {
-    if (!_xcArrayExpand(array))
+    if (!_xcArrayExpand(array, 1))
         return false;
     memcpy((u8 *)array->data + array->len * array->unitSize, value, array->unitSize);
     array->len++;
@@ -191,6 +191,14 @@ bool xcArrayInsert(XCArray *array, void *value, isize index) {
     if (!xcArrayAppend(array, value))
         return false;
     _xcArrayMoveFast(array, array->len - 1, index);
+    return true;
+}
+
+bool xcArrayExtend(XCArray *array, void *newData, usize newDataLength) {
+    if (!_xcArrayExpand(array, newDataLength))
+        return false;
+    memcpy((u8 *)array->data + array->len * array->unitSize, newData, newDataLength * array->unitSize);
+    array->len += newDataLength;
     return true;
 }
 
@@ -476,10 +484,8 @@ usize xcArrayBisectRight(XCArray *array, void *value, XCComparator compareFunc) 
     return xcArrayBisectRightEx(array, value, compareFunc, 0, array->len);
 }
 
-isize xcArrayBisectEx(XCArray *array, void *value, XCComparator compareFunc, isize lo, isize hi) {
-    lo = xcArrayIdxCheck(array, lo);
-    hi = xcArrayIdxCheck(array, hi);
-    if (lo < 0 || hi < 0)
+isize xcArrayBisectEx(XCArray *array, void *value, XCComparator compareFunc, usize lo, usize hi) {
+    if (lo < 0 || hi < 0 || lo >= array->len || hi > array->len)
         return -1;
     while (lo < hi) {
         isize mid = (lo + hi) / 2;
@@ -492,10 +498,8 @@ isize xcArrayBisectEx(XCArray *array, void *value, XCComparator compareFunc, isi
     return lo;
 }
 
-isize xcArrayBisectRightEx(XCArray *array, void *value, XCComparator compareFunc, isize lo, isize hi) {
-    lo = xcArrayIdxCheck(array, lo);
-    hi = xcArrayIdxCheck(array, hi);
-    if (lo < 0 || hi < 0)
+isize xcArrayBisectRightEx(XCArray *array, void *value, XCComparator compareFunc, usize lo, usize hi) {
+    if (lo < 0 || hi < 0 || lo >= array->len || hi > array->len)
         return -1;
     while (lo < hi) {
         isize mid = (lo + hi) / 2;
