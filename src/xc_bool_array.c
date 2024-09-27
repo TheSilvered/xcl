@@ -2,7 +2,7 @@
 #include "xc.h"
 
 XCBoolArray xcBoolArrayNew(usize length) {
-    return calloc(xcBoolArraySize(length), sizeof(XCBoolArraySlot));
+    return calloc(xcBoolArraySize(length), sizeof(XCBoolArrayChunk));
 }
 
 void xcBoolArrayFree(XCBoolArray array) {

@@ -1,7 +1,7 @@
 #include "test.h"
 
 TestResult test_xcDebug_BlockSize_malloc(void) {
-    void *block = malloc(10);
+    XCMemBlock block = malloc(10);
     if (!block)
         return TR_allocFailed;
     if (xcDebug_BlockSize(block) != 10) {
@@ -13,7 +13,7 @@ TestResult test_xcDebug_BlockSize_malloc(void) {
 }
 
 TestResult test_xcDebug_BlockSize_mallocEmpty(void) {
-    void *block = malloc(0);
+    XCMemBlock block = malloc(0);
     if (!block)
         return TR_allocFailed;
     if (xcDebug_BlockSize(block) != 0) {
@@ -25,7 +25,7 @@ TestResult test_xcDebug_BlockSize_mallocEmpty(void) {
 }
 
 TestResult test_xcDebug_BlockSize_calloc(void) {
-    void *block = calloc(10, 1);
+    XCMemBlock block = calloc(10, 1);
     if (!block)
         return TR_allocFailed;
     if (xcDebug_BlockSize(block) != 10) {
@@ -37,7 +37,7 @@ TestResult test_xcDebug_BlockSize_calloc(void) {
 }
 
 TestResult test_xcDebug_BlockSize_callocEmpty(void) {
-    void *block = calloc(0, 1);
+    XCMemBlock block = calloc(0, 1);
     if (!block)
         return TR_allocFailed;
     if (xcDebug_BlockSize(block) != 0) {
@@ -49,7 +49,7 @@ TestResult test_xcDebug_BlockSize_callocEmpty(void) {
 }
 
 TestResult test_xcDebug_BlockSize_reallocFromNull(void) {
-    void *block = realloc(NULL, 10);
+    XCMemBlock block = realloc(NULL, 10);
     if (!block)
         return TR_allocFailed;
     if (xcDebug_BlockSize(block) != 10) {
@@ -61,14 +61,14 @@ TestResult test_xcDebug_BlockSize_reallocFromNull(void) {
 }
 
 TestResult test_xcDebug_BlockSize_reallocFromBlock(void) {
-    void *block = malloc(10);
+    XCMemBlock block = malloc(10);
     if (!block)
         return TR_allocFailed;
     if (xcDebug_BlockSize(block) != 10) {
         free(block);
         return TR_failure;
     }
-    void *newBlock = realloc(block, 20);
+    XCMemBlock newBlock = realloc(block, 20);
     if (!newBlock) {
         free(block);
         return TR_allocFailed;
@@ -82,14 +82,14 @@ TestResult test_xcDebug_BlockSize_reallocFromBlock(void) {
 }
 
 TestResult test_xcDebug_BlockSize_reallocToEmpty(void) {
-    void *block = malloc(10);
+    XCMemBlock block = malloc(10);
     if (!block)
         return TR_allocFailed;
     if (xcDebug_BlockSize(block) != 10) {
         free(block);
         return TR_failure;
     }
-    void *newBlock = realloc(block, 0);
+    XCMemBlock newBlock = realloc(block, 0);
     if (!newBlock) {
         free(block);
         return TR_allocFailed;

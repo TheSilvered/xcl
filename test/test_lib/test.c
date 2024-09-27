@@ -90,6 +90,7 @@ static struct {
 
 void testRunModule(TestModule module, int *outPassed, int *outFailed, int *outIgnored) {
     printf(CYAN("Module '%s' (%zi tests):") "\n", module.name, module.testCount);
+    fflush(stdout);
     int testsPassed = 0;
     int testsFailed = 0;
     int testsIgnored = 0;
@@ -115,6 +116,7 @@ void testRunModule(TestModule module, int *outPassed, int *outFailed, int *outIg
 
 TestResult testRun(Test test) {
     printf("  Test '%s'... ", test.name);
+    fflush(stdout);
 
 #ifndef TEST_NO_THREADS
     TestResult result = threadedRun(test.func);
@@ -138,7 +140,7 @@ TestResult testRun(Test test) {
         printf(RED("TIMED OUT\n"));
         break;
     }
-
+    fflush(stdout);
     return result;
 }
 
@@ -238,6 +240,7 @@ TestModule *testFindModule(const char *name) {
     memcpy(buf, "test_", 5);
     strcpy(buf + 5, name);
     printf("Searching for module '%s'...\n", buf);
+    fflush(stdout);
     for (usize i = 0; i < modules.count; i++) {
         TestModule *module = &modules.list[i];
         if (strcmp(buf, module->name) == 0)

@@ -1,27 +1,29 @@
 #include "../test_lib/test.h"
 
-TestResult test_xcArrayFindAll_countOneMatch(void) {
+static bool filter(XCRef value) {
+    return *(int *)value == 3;
+}
+
+TestResult test_xcArrayFilter_countOneMatch(void) {
     XCArray array;
     int arrValues[] = { 0, 1, 2, 3, 4 };
     xcArrayInitFromData(&array, sizeof(int), sizeof(arrValues) / sizeof(int), arrValues);
 
-    int valueToFind = 3;
-    usize count = xcArrayFindAll(&array, &valueToFind, xcCompare_int, NULL);
+    usize count = xcArrayFilter(&array, filter, NULL);
     if (count != 1)
         return TR_failure;
 
     return TR_success;
 }
 
-TestResult test_xcArrayFindAll_oneMatch(void) {
+TestResult test_xcArrayFilter_oneMatch(void) {
     XCArray array;
     int arrValues[] = { 0, 1, 2, 3, 4 };
     xcArrayInitFromData(&array, sizeof(int), sizeof(arrValues) / sizeof(int), arrValues);
     TestResult result = TR_success;
 
-    int valueToFind = 3;
     XCRef *refs;
-    usize count = xcArrayFindAll(&array, &valueToFind, xcCompare_int, &refs);
+    usize count = xcArrayFilter(&array, filter, &refs);
     if (refs == NULL)
         return TR_allocFailed;
     if (count != 1)
@@ -35,28 +37,26 @@ TestResult test_xcArrayFindAll_oneMatch(void) {
     return result;
 }
 
-TestResult test_xcArrayFindAll_countZeroMatches(void) {
+TestResult test_xcArrayFilter_countZeroMatches(void) {
     XCArray array;
-    int arrValues[] = { 0, 1, 2, 3, 4 };
+    int arrValues[] = { 0, 1, 2, 5, 4 };
     xcArrayInitFromData(&array, sizeof(int), sizeof(arrValues) / sizeof(int), arrValues);
 
-    int valueToFind = 5;
-    usize count = xcArrayFindAll(&array, &valueToFind, xcCompare_int, NULL);
+    usize count = xcArrayFilter(&array, filter, NULL);
     if (count != 0)
         return TR_failure;
 
     return TR_success;
 }
 
-TestResult test_xcArrayFindAll_zeroMatches(void) {
+TestResult test_xcArrayFilter_zeroMatches(void) {
     XCArray array;
-    int arrValues[] = { 0, 1, 2, 3, 4 };
+    int arrValues[] = { 0, 1, 2, 5, 4 };
     xcArrayInitFromData(&array, sizeof(int), sizeof(arrValues) / sizeof(int), arrValues);
     TestResult result = TR_success;
 
-    int valueToFind = 5;
     XCRef *refs;
-    usize count = xcArrayFindAll(&array, &valueToFind, xcCompare_int, &refs);
+    usize count = xcArrayFilter(&array, filter, &refs);
     if (refs == NULL)
         return TR_allocFailed;
     if (count != 0)
@@ -66,28 +66,26 @@ TestResult test_xcArrayFindAll_zeroMatches(void) {
     return result;
 }
 
-TestResult test_xcArrayFindAll_countManyMatches(void) {
+TestResult test_xcArrayFilter_countManyMatches(void) {
     XCArray array;
     int arrValues[] = { 0, 3, 2, 3, 3 };
     xcArrayInitFromData(&array, sizeof(int), sizeof(arrValues) / sizeof(int), arrValues);
 
-    int valueToFind = 3;
-    usize count = xcArrayFindAll(&array, &valueToFind, xcCompare_int, NULL);
+    usize count = xcArrayFilter(&array, filter, NULL);
     if (count != 3)
         return TR_failure;
 
     return TR_success;
 }
 
-TestResult test_xcArrayFindAll_manyMatches(void) {
+TestResult test_xcArrayFilter_manyMatches(void) {
     XCArray array;
     int arrValues[] = { 0, 3, 2, 3, 3 };
     xcArrayInitFromData(&array, sizeof(int), sizeof(arrValues) / sizeof(int), arrValues);
     TestResult result = TR_success;
 
-    int valueToFind = 3;
     XCRef *refs;
-    usize count = xcArrayFindAll(&array, &valueToFind, xcCompare_int, &refs);
+    usize count = xcArrayFilter(&array, filter, &refs);
     if (refs == NULL)
         return TR_allocFailed;
     if (count != 3)
@@ -109,12 +107,12 @@ TestResult test_xcArrayFindAll_manyMatches(void) {
     return result;
 }
 
-void test_xcArrayFindAll__addTests(void) {
-    testSetModule("test_xcArrayFindAll");
-    testAdd(TEST(test_xcArrayFindAll_countOneMatch));
-    testAdd(TEST(test_xcArrayFindAll_oneMatch));
-    testAdd(TEST(test_xcArrayFindAll_countZeroMatches));
-    testAdd(TEST(test_xcArrayFindAll_zeroMatches));
-    testAdd(TEST(test_xcArrayFindAll_countManyMatches));
-    testAdd(TEST(test_xcArrayFindAll_manyMatches));
+void test_xcArrayFilter__addTests(void) {
+    testSetModule("test_xcArrayFilter");
+    testAdd(TEST(test_xcArrayFilter_countOneMatch));
+    testAdd(TEST(test_xcArrayFilter_oneMatch));
+    testAdd(TEST(test_xcArrayFilter_countZeroMatches));
+    testAdd(TEST(test_xcArrayFilter_zeroMatches));
+    testAdd(TEST(test_xcArrayFilter_countManyMatches));
+    testAdd(TEST(test_xcArrayFilter_manyMatches));
 }

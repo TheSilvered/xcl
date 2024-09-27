@@ -1,30 +1,34 @@
 #include "test_lib/test.h"
 
-#include "test_modules/test_xcArrayFind.c"
-#include "test_modules/test_xcArrayGet.c"
+#include "test_modules/test_xcCompare.c"
+#include "test_modules/test_xcDebug_BlockSize.c"
 #include "test_modules/test_xcArrayInit.c"
 #include "test_modules/test_xcArrayInitFromCopy.c"
 #include "test_modules/test_xcArrayInitFromData.c"
 #include "test_modules/test_xcArrayNew.c"
 #include "test_modules/test_xcArrayNewFromCopy.c"
 #include "test_modules/test_xcArrayNewFromData.c"
-#include "test_modules/test_xcCompare.c"
-#include "test_modules/test_xcDebug_BlockSize.c"
+#include "test_modules/test_xcArrayGet.c"
+#include "test_modules/test_xcArrayFind.c"
+#include "test_modules/test_xcArrayFindAll.c"
+#include "test_modules/test_xcArrayFilter.c"
 
 static const char *parseArguments(int argc, char **argv);
 static bool runAllModules(void);
 
 int main(int argc, char **argv) {
-    test_xcArrayFind__addTests();
-    test_xcArrayGet__addTests();
+    test_xcCompare__addTests();
+    test_xcDebug_BlockSize__addTests();
     test_xcArrayInit__addTests();
     test_xcArrayInitFromCopy__addTests();
     test_xcArrayInitFromData__addTests();
     test_xcArrayNew__addTests();
     test_xcArrayNewFromCopy__addTests();
     test_xcArrayNewFromData__addTests();
-    test_xcDebug_BlockSize__addTests();
-    test_xcCompare__addTests();
+    test_xcArrayGet__addTests();
+    test_xcArrayFind__addTests();
+    test_xcArrayFindAll__addTests();
+    test_xcArrayFilter__addTests();
 
     int returnValue = 0;
     const char *specifiedTest = parseArguments(argc, argv);

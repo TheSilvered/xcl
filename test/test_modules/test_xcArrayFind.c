@@ -6,8 +6,8 @@ TestResult test_xcArrayFind_oneMatch(void) {
     xcArrayInitFromData(&array, sizeof(int), sizeof(arrValues) / sizeof(int), arrValues);
 
     int valueToFind = 3;
-    void *value = xcArrayFind(&array, &valueToFind, xcCompare_int);
-    if (xcArrayPtrToIdx(&array, value) != 3)
+    XCRef value = xcArrayFind(&array, &valueToFind, xcCompare_int);
+    if (xcArrayRefToIdx(&array, value) != 3)
         return TR_failure;
     if (*(int *)value != 3)
         return TR_failure;
@@ -21,7 +21,7 @@ TestResult test_xcArrayFind_zeroMatches(void) {
     xcArrayInitFromData(&array, sizeof(int), sizeof(arrValues) / sizeof(int), arrValues);
 
     int valueToFind = 5;
-    void *value = xcArrayFind(&array, &valueToFind, xcCompare_int);
+    XCRef value = xcArrayFind(&array, &valueToFind, xcCompare_int);
     if (value != NULL)
         return TR_failure;
     return TR_success;
@@ -33,8 +33,8 @@ TestResult test_xcArrayFind_manyMatches(void) {
     xcArrayInitFromData(&array, sizeof(int), sizeof(arrValues) / sizeof(int), arrValues);
 
     int valueToFind = 3;
-    void *value = xcArrayFind(&array, &valueToFind, xcCompare_int);
-    if (xcArrayPtrToIdx(&array, value) != 1)
+    XCRef value = xcArrayFind(&array, &valueToFind, xcCompare_int);
+    if (xcArrayRefToIdx(&array, value) != 1)
         return TR_failure;
     if (*(int *)value != 3)
         return TR_failure;

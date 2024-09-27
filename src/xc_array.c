@@ -115,37 +115,48 @@ XCRef xcArrayFind(XCArray *array, XCRef value, XCComparator compareFunc) {
 
 usize xcArrayFindAll(XCArray *array, XCRef value, XCComparator compareFunc, XCRef **outBuf) {
     XCArray foundArr;
-    if (outBuf && !xcArrayInit(&foundArr, sizeof(XCRef), 0)) {
-        *outBuf = NULL;
-        return 0;
+    if (outBuf) {
+        if (!xcArrayInit(&foundArr, sizeof(XCRef), 0)) {
+            *outBuf = NULL;
+            return 0;
+        }
     }
-    *outBuf = array->data;
     usize count = 0;
     for (XCRef v = xcArrayNext(array, NULL); v; v = xcArrayNext(array, v)) {
         if (compareFunc(value, v) == 0) {
-            if (outBuf && !xcArrayAppend(&foundArr, &v))
+            if (outBuf && !xcArrayAppend(&foundArr, &v)) {
+                *outBuf = foundArr.data;
                 return count;
+            }
             count++;
         }
     }
+    if (outBuf)
+        *outBuf = foundArr.data;
     return count;
 }
 
 usize xcArrayFilter(XCArray *array, XCFilter filterFunc, XCRef **outBuf) {
     XCArray foundArr;
-    if (outBuf && !xcArrayInit(&foundArr, sizeof(XCRef), 0)) {
-        *outBuf = NULL;
-        return 0;
+    if (outBuf) {
+        if (!xcArrayInit(&foundArr, sizeof(XCRef), 0)) {
+            *outBuf = NULL;
+            return 0;
+        } else
+            *outBuf = foundArr.data;
     }
-    *outBuf = array->data;
     usize count = 0;
     for (XCRef v = xcArrayNext(array, NULL); v; v = xcArrayNext(array, v)) {
-        if (filterFunc(v) == 0) {
-            if (outBuf && !xcArrayAppend(&foundArr, &v))
+        if (filterFunc(v)) {
+            if (outBuf && !xcArrayAppend(&foundArr, &v)) {
+                *outBuf = foundArr.data;
                 return count;
+            }
             count++;
         }
     }
+    if (outBuf)
+        *outBuf = foundArr.data;
     return count;
 }
 
