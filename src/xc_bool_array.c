@@ -21,6 +21,6 @@ void xcBoolArraySet(XCBoolArray array, usize idx, bool value) {
         array[idx / 8] = byte & ~(1 << (idx % 8));
 }
 
-void xcBoolArrayFill(XCBoolArray array, usize length, bool value) {
+void xcBoolArraySetAll(XCBoolArray array, usize length, bool value) {
     memset(array, value ? 255 : 0, xcBoolArraySize(length));
 }

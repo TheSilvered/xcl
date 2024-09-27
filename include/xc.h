@@ -265,19 +265,24 @@ XCLIB isize xcArrayBisectRightEx(XCArray *array, XCRef value, XCComparator compa
 
 // A compacted boolean array (1 bit per boolean)
 typedef u8 *XCBoolArray;
-// A slot that contains booleans in a boolean array.
-typedef u8 XCBoolArraySlot;
+// A chunk of booleans in a boolean array.
+typedef u8 XCBoolArrayChunk;
 
-// Gets the number of slots for an `XCBoolArray` of a given size.
-// This can be used to use an array on the stack.
-// For example `XCBoolArraySlot arr[xcBoolArraySize(10)]` creates a boolean array of size `10`.
-#define xcBoolArraySize(length) ((length) / sizeof(XCBoolArraySlot) + ((length) % sizeof(XCBoolArraySlot) ? 1 : 0))
+// Gets the number of chunks needed for an `XCBoolArray` of a given length.
+// This can be used to create an `XCBoolArray` on the stack.
+// For example `XCBoolArrayChunk arr[xcBoolArraySize(10)]` creates a boolean array of size `10`.
+#define xcBoolArraySize(length) ((length) / sizeof(XCBoolArrayChunk) + ((length) % sizeof(XCBoolArrayChunk) ? 1 : 0))
 
+// Create a new `XCBoolArray` of length `length`. All values are initialized to `false`.
 XCLIB XCBoolArray xcBoolArrayNew(usize length);
+// Free an `XCBoolArray`.
 XCLIB void xcBoolArrayFree(XCBoolArray array);
+// Get the value at index `idx` of an `XCBooleanArray`. Negative indices are not allowed.
 XCLIB bool xcBoolArrayGet(XCBoolArray array, usize idx);
+// Set the value at index `idx` of an `XCBooleanArray`. Negative indices are not allowed.
 XCLIB void xcBoolArraySet(XCBoolArray array, usize idx, bool value);
-XCLIB void xcBoolArrayFill(XCBoolArray array, usize length, bool value);
+// Set all values of an `XCBooleanArray` to `value`.
+XCLIB void xcBoolArraySetAll(XCBoolArray array, usize length, bool value);
 
 
 // -----------------------------
