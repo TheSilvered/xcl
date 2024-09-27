@@ -1,3 +1,10 @@
 #!/usr/bin/sh
 
-clang -o main main.c src/* -I./include && ./main
+CC=clang
+EXE_OUT=main
+SRCS="main.c src/*"
+INCLUDE="-I./include"
+DEFINES=
+FLAGS="-g -O0"
+
+$CC -o $EXE_OUT $SRCS $INCLUDE $DEFINES $FLAGS && ./$EXE_OUT $@

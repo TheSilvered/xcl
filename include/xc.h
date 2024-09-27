@@ -8,7 +8,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-#ifdef XC_NO_BOOL
+#ifdef XC_NO_STDBOOL
 
 typedef int bool;
 #define false 0
@@ -18,7 +18,7 @@ typedef int bool;
 
 #include <stdbool.h>
 
-#endif
+#endif // !XC_NO_STDBOOL
 
 // ------------------------
 // Utility macros

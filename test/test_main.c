@@ -12,6 +12,8 @@
 #include "test_modules/test_xcArrayFind.c"
 #include "test_modules/test_xcArrayFindAll.c"
 #include "test_modules/test_xcArrayFilter.c"
+#include "test_modules/test_xcArrayAppend.c"
+#include "test_modules/test_xcArrayInsert.c"
 
 static const char *parseArguments(int argc, char **argv);
 static bool runAllModules(void);
@@ -29,6 +31,8 @@ int main(int argc, char **argv) {
     test_xcArrayFind__addTests();
     test_xcArrayFindAll__addTests();
     test_xcArrayFilter__addTests();
+    test_xcArrayAppend__addTests();
+    test_xcArrayInsert__addTests();
 
     int returnValue = 0;
     const char *specifiedTest = parseArguments(argc, argv);
