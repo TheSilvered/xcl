@@ -1,5 +1,7 @@
 #include "test_lib/test.h"
 
+#include "test_modules/test_xcArrayFind.c"
+#include "test_modules/test_xcArrayGet.c"
 #include "test_modules/test_xcArrayInit.c"
 #include "test_modules/test_xcArrayInitFromCopy.c"
 #include "test_modules/test_xcArrayInitFromData.c"
@@ -13,6 +15,8 @@ static const char *parseArguments(int argc, char **argv);
 static bool runAllModules(void);
 
 int main(int argc, char **argv) {
+    test_xcArrayFind__addTests();
+    test_xcArrayGet__addTests();
     test_xcArrayInit__addTests();
     test_xcArrayInitFromCopy__addTests();
     test_xcArrayInitFromData__addTests();

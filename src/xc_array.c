@@ -6,10 +6,10 @@
 #define SORT_RUN_SIZE 32
 #define STATIC_BUF_SIZE 64
 
-static inline void *_xcArrayGetFast(XCArray *array, usize index);
+static inline XCRef _xcArrayGetFast(XCArray *array, usize index);
 static inline bool _xcArrayExpand(XCArray *array, usize quantity);
 static inline void _xcArrayShrink(XCArray *array);
-static inline void _xcArraySetFast(XCArray *array, void *value, usize index);
+static inline void _xcArraySetFast(XCArray *array, XCRef value, usize index);
 static inline void _xcArraySwapFast(XCArray *array, usize index1, usize index2);
 static void _xcArrayMoveFast(XCArray *array, usize from, usize to);
 static void _xcInsertionSort(XCArray *array, XCComparator compareFunc, usize start, usize end);
@@ -28,7 +28,7 @@ bool xcArrayInit(XCArray *array, usize unitSize, usize reserve) {
     return true;
 }
 
-bool xcArrayInitFromCopy(XCArray *array, usize unitSize, usize count, void *data) {
+bool xcArrayInitFromCopy(XCArray *array, usize unitSize, usize count, XCMemBlock data) {
     if (!xcArrayInit(array, unitSize, count))
         return false;
     memcpy(array->data, data, unitSize * count);
@@ -36,7 +36,7 @@ bool xcArrayInitFromCopy(XCArray *array, usize unitSize, usize count, void *data
     return true;
 }
 
-void xcArrayInitFromData(XCArray *array, usize unitSize, usize count, void *data) {
+void xcArrayInitFromData(XCArray *array, usize unitSize, usize count, XCMemBlock data) {
     array->data = data;
     array->cap = count;
     array->len = count;
@@ -54,7 +54,7 @@ XCArray *xcArrayNew(usize unitSize, usize reserve) {
     return array;
 }
 
-XCArray *xcArrayNewFromCopy(usize unitSize, usize count, void *data) {
+XCArray *xcArrayNewFromCopy(usize unitSize, usize count, XCMemBlock data) {
     XCArray *array = malloc(sizeof(XCArray));
     if (!array)
         return NULL;
@@ -65,7 +65,7 @@ XCArray *xcArrayNewFromCopy(usize unitSize, usize count, void *data) {
     return array;
 }
 
-XCArray *xcArrayNewFromData(usize unitSize, usize count, void *data) {
+XCArray *xcArrayNewFromData(usize unitSize, usize count, XCMemBlock data) {
     XCArray *array = malloc(sizeof(XCArray));
     if (!array)
         return NULL;
@@ -79,7 +79,7 @@ void xcArrayDestroy(XCArray *array, XCDestructor itemDestroyFunc) {
     if (!array)
         return;
     if (itemDestroyFunc) {
-        for (void *v = xcArrayNext(array, NULL); v; v = xcArrayNext(array, v))
+        for (XCRef v = xcArrayNext(array, NULL); v; v = xcArrayNext(array, v))
             itemDestroyFunc(v);
     }
     free(array->data);
@@ -92,38 +92,38 @@ void xcArrayFree(XCArray *array, XCDestructor itemDestroyFunc) {
     free(array);
 }
 
-static inline void *_xcArrayGetFast(XCArray *array, usize index) {
-    return (void *)((u8 *)array->data + index * array->unitSize);
+static inline XCRef _xcArrayGetFast(XCArray *array, usize index) {
+    return (XCRef)((u8 *)array->data + index * array->unitSize);
 }
 
 // === Item retrival ===
 
-void *xcArrayGet(XCArray *array, isize index) {
+XCRef xcArrayGet(XCArray *array, isize index) {
     index = xcArrayIdxCheck(array, index);
     if (index < 0)
         return NULL;
     return _xcArrayGetFast(array, (usize)index);
 }
 
-void *xcArrayFind(XCArray *array, void *value, XCComparator compareFunc) {
-    for (void *v = xcArrayNext(array, NULL); v; v = xcArrayNext(array, v)) {
+XCRef xcArrayFind(XCArray *array, XCRef value, XCComparator compareFunc) {
+    for (XCRef v = xcArrayNext(array, NULL); v; v = xcArrayNext(array, v)) {
         if (compareFunc(value, v) == 0)
             return v;
     }
     return NULL;
 }
 
-usize xcArrayFindAll(XCArray *array, void *value, XCComparator compareFunc, void **outBuf) {
+usize xcArrayFindAll(XCArray *array, XCRef value, XCComparator compareFunc, XCRef **outBuf) {
     XCArray foundArr;
-    if (outBuf && !xcArrayInit(&foundArr, array->unitSize, 0)) {
+    if (outBuf && !xcArrayInit(&foundArr, sizeof(XCRef), 0)) {
         *outBuf = NULL;
         return 0;
     }
     *outBuf = array->data;
     usize count = 0;
-    for (void *v = xcArrayNext(array, NULL); v; v = xcArrayNext(array, v)) {
+    for (XCRef v = xcArrayNext(array, NULL); v; v = xcArrayNext(array, v)) {
         if (compareFunc(value, v) == 0) {
-            if (outBuf && !xcArrayAppend(&foundArr, v))
+            if (outBuf && !xcArrayAppend(&foundArr, &v))
                 return count;
             count++;
         }
@@ -131,17 +131,17 @@ usize xcArrayFindAll(XCArray *array, void *value, XCComparator compareFunc, void
     return count;
 }
 
-usize xcArrayFilter(XCArray *array, XCFilter filterFunc, void **outBuf) {
+usize xcArrayFilter(XCArray *array, XCFilter filterFunc, XCRef **outBuf) {
     XCArray foundArr;
-    if (outBuf && !xcArrayInit(&foundArr, array->unitSize, 0)) {
+    if (outBuf && !xcArrayInit(&foundArr, sizeof(XCRef), 0)) {
         *outBuf = NULL;
         return 0;
     }
     *outBuf = array->data;
     usize count = 0;
-    for (void *v = xcArrayNext(array, NULL); v; v = xcArrayNext(array, v)) {
+    for (XCRef v = xcArrayNext(array, NULL); v; v = xcArrayNext(array, v)) {
         if (filterFunc(v) == 0) {
-            if (outBuf && !xcArrayAppend(&foundArr, v))
+            if (outBuf && !xcArrayAppend(&foundArr, &v))
                 return count;
             count++;
         }
@@ -155,7 +155,7 @@ static inline bool _xcArrayExpand(XCArray *array, usize quantity) {
     if (array->len + quantity <= array->cap)
         return true;
     usize newCap = (usize)((double)(array->len + quantity) * 1.5);
-    void *newData = realloc(array->data, newCap * array->unitSize);
+    XCMemBlock newData = realloc(array->data, newCap * array->unitSize);
     if (!newData)
         return false;
     array->data = newData;
@@ -169,14 +169,14 @@ static inline void _xcArrayShrink(XCArray *array) {
     usize newCap = array->cap / 2;
     if (newCap < MIN_ARRAY_CAP)
         return;
-    void *newData = realloc(array->data, newCap * array->unitSize);
+    XCMemBlock newData = realloc(array->data, newCap * array->unitSize);
     if (!newData)
         return;
     array->data = newData;
     array->cap = newCap;
 }
 
-bool xcArrayAppend(XCArray *array, void *value) {
+bool xcArrayAppend(XCArray *array, XCRef value) {
     if (!_xcArrayExpand(array, 1))
         return false;
     memcpy((u8 *)array->data + array->len * array->unitSize, value, array->unitSize);
@@ -184,7 +184,7 @@ bool xcArrayAppend(XCArray *array, void *value) {
     return true;
 }
 
-bool xcArrayInsert(XCArray *array, void *value, isize index) {
+bool xcArrayInsert(XCArray *array, XCRef value, isize index) {
     index = xcArrayIdxCheck(array, index);
     if (index < 0)
         return false;
@@ -194,7 +194,7 @@ bool xcArrayInsert(XCArray *array, void *value, isize index) {
     return true;
 }
 
-bool xcArrayExtend(XCArray *array, void *newData, usize newDataLength) {
+bool xcArrayExtend(XCArray *array, XCMemBlock newData, usize newDataLength) {
     if (!_xcArrayExpand(array, newDataLength))
         return false;
     memcpy((u8 *)array->data + array->len * array->unitSize, newData, newDataLength * array->unitSize);
@@ -204,12 +204,12 @@ bool xcArrayExtend(XCArray *array, void *newData, usize newDataLength) {
 
 // === Item manipulation ===
 
-static inline void _xcArraySetFast(XCArray *array, void *value, usize index) {
+static inline void _xcArraySetFast(XCArray *array, XCRef value, usize index) {
     memcpy(_xcArrayGetFast(array, index), value, array->unitSize);
 }
 
-bool xcArraySet(XCArray *array, void *value, isize index, XCDestructor itemDestroyFunc) {
-    void *arrayValue = xcArrayGet(array, index);
+bool xcArraySet(XCArray *array, XCRef value, isize index, XCDestructor itemDestroyFunc) {
+    XCRef arrayValue = xcArrayGet(array, index);
     if (!arrayValue)
         return false;
     if (itemDestroyFunc)
@@ -257,8 +257,8 @@ static void _xcArrayMoveFast(XCArray *array, usize from, usize to) {
                 _xcArraySwapFast(array, i, i + 1);
             return;
         }
-        void *valueFrom = _xcArrayGetFast(array, from);
-        void *valueTo = _xcArrayGetFast(array, to);
+        XCRef valueFrom = _xcArrayGetFast(array, from);
+        XCRef valueTo = _xcArrayGetFast(array, to);
         memcpy(staticBuf, valueFrom, unitSize);
         memmove(valueFrom, valueFrom, (to - from) * unitSize);
         memcpy(valueTo, staticBuf, unitSize);
@@ -268,8 +268,8 @@ static void _xcArrayMoveFast(XCArray *array, usize from, usize to) {
                 _xcArraySwapFast(array, i, i - 1);
             return;
         }
-        void *valueFrom = _xcArrayGetFast(array, from);
-        void *valueTo = _xcArrayGetFast(array, to);
+        XCRef valueFrom = _xcArrayGetFast(array, from);
+        XCRef valueTo = _xcArrayGetFast(array, to);
         memcpy(staticBuf, valueFrom, unitSize);
         memmove((u8 *)valueTo + unitSize, valueTo, (from - to) * unitSize);
         memcpy(valueTo, staticBuf, unitSize);
@@ -287,10 +287,10 @@ bool xcArrayMove(XCArray *array, isize from, isize to) {
 
 static void _xcInsertionSort(XCArray *array, XCComparator compareFunc, usize start, usize end) {
     for (usize i = start + 1; i < end; i++) {
-        void *movingValue = _xcArrayGetFast(array, i);
+        XCRef movingValue = _xcArrayGetFast(array, i);
         usize finalIndex = i;
         for (usize j = i - 1; j >= start; j--) {
-            void *sortedValue = _xcArrayGetFast(array, j);
+            XCRef sortedValue = _xcArrayGetFast(array, j);
             if (compareFunc(movingValue, sortedValue) < 0)
                 finalIndex = j;
         }
@@ -305,8 +305,8 @@ static void _xcInPlaceMergeSort(XCArray *array, XCComparator compareFunc, usize 
     usize unitSize = array->unitSize;
 
     while (i < middle && j < end) {
-        void *a = _xcArrayGetFast(array, i);
-        void *b = _xcArrayGetFast(array, j);
+        XCRef a = _xcArrayGetFast(array, i);
+        XCRef b = _xcArrayGetFast(array, j);
         if (compareFunc(a, b) < 0) {
             i++;
             continue;
@@ -320,9 +320,9 @@ static void _xcInPlaceMergeSort(XCArray *array, XCComparator compareFunc, usize 
 
 static void _xcMergeSort(u8 *tempBuf, XCArray *array, XCComparator compareFunc, usize start, usize middle, usize end) {
     // Skip already sorted initial items
-    void *middleValue = _xcArrayGetFast(array, middle);
+    XCRef middleValue = _xcArrayGetFast(array, middle);
     while (start < middle) {
-        void *startValue = _xcArrayGetFast(array, start);
+        XCRef startValue = _xcArrayGetFast(array, start);
         if (compareFunc(startValue, middleValue) > 0)
             break;
         start++;
@@ -342,8 +342,8 @@ static void _xcMergeSort(u8 *tempBuf, XCArray *array, XCComparator compareFunc, 
     usize unitSize = array->unitSize;
 
     while (i < middle && j < end) {
-        void *a = _xcArrayGetFast(array, i);
-        void *b = _xcArrayGetFast(array, j);
+        XCRef a = _xcArrayGetFast(array, i);
+        XCRef b = _xcArrayGetFast(array, j);
         if (compareFunc(a, b) > 0) {
             memcpy(buf + k * unitSize, b, unitSize);
             j++;
@@ -388,7 +388,7 @@ void xcArraySort(XCArray *array, XCComparator compareFunc) {
 // === Item removal ===
 
 bool xcArrayDel(XCArray *array, isize index, XCDestructor itemDestroyFunc) {
-    void *value = xcArrayGet(array, index);
+    XCRef value = xcArrayGet(array, index);
     if (!value)
         return false;
     if (itemDestroyFunc)
@@ -402,19 +402,19 @@ bool xcArrayDel(XCArray *array, isize index, XCDestructor itemDestroyFunc) {
     return true;
 }
 
-bool xcArrayRemove(XCArray *array, void *value, XCComparator compareFunc, XCDestructor itemDestroyFunc) {
-    void *ptr = xcArrayFind(array, value, compareFunc);
-    if (!ptr)
+bool xcArrayRemove(XCArray *array, XCRef value, XCComparator compareFunc, XCDestructor itemDestroyFunc) {
+    XCRef ref = xcArrayFind(array, value, compareFunc);
+    if (!ref)
         return false;
-    xcArrayDel(array, xcArrayPtrToIdx(array, ptr), itemDestroyFunc);
+    xcArrayDel(array, xcArrayRefToIdx(array, ref), itemDestroyFunc);
     return true;
 }
 
-usize xcArrayRemoveAll(XCArray *array, void *value, XCComparator compareFunc, XCDestructor itemDestroyFunc) {
+usize xcArrayRemoveAll(XCArray *array, XCRef value, XCComparator compareFunc, XCDestructor itemDestroyFunc) {
     usize removedCount = 0;
     u8 *data = (u8 *)array->data;
     for (usize i = 0, n = array->len; i < n; i++) {
-        void *remValue = xcArrayGet(array, i);
+        XCRef remValue = xcArrayGet(array, i);
         if (compareFunc(value, remValue) == 0) {
             removedCount++;
             if (itemDestroyFunc)
@@ -431,7 +431,7 @@ usize xcArrayRemoveFilter(XCArray *array, XCFilter filterFunc, XCDestructor item
     usize removedCount = 0;
     u8 *data = (u8 *)array->data;
     for (usize i = 0, n = array->len; i < n; i++) {
-        void *remValue = xcArrayGet(array, i);
+        XCRef remValue = xcArrayGet(array, i);
         if (filterFunc(remValue) == 0) {
             removedCount++;
             if (itemDestroyFunc)
@@ -446,10 +446,10 @@ usize xcArrayRemoveFilter(XCArray *array, XCFilter filterFunc, XCDestructor item
 
 // === Iteration ===
 
-void *xcArrayNext(XCArray *array, void *value) {
+XCRef xcArrayNext(XCArray *array, XCRef value) {
     if (!value)
         return array->data;
-    void *next = ((u8 *)value + array->unitSize);
+    XCRef next = ((u8 *)value + array->unitSize);
     if (next > _xcArrayGetFast(array, array->len -  1))
         return NULL;
     return next;
@@ -466,8 +466,8 @@ isize xcArrayIdxCheck(XCArray *array, isize idx) {
     return idx;
 }
 
-isize xcArrayPtrToIdx(XCArray *array, void *ptr) {
-    isize p = (u8 *)ptr - (u8 *)array->data;
+isize xcArrayRefToIdx(XCArray *array, XCRef ref) {
+    isize p = (u8 *)ref - (u8 *)array->data;
     if (p < 0 || p % array->unitSize != 0)
         return -1;
     p /= array->unitSize;
@@ -476,20 +476,20 @@ isize xcArrayPtrToIdx(XCArray *array, void *ptr) {
     return p;
 }
 
-usize xcArrayBisect(XCArray *array, void *value, XCComparator compareFunc) {
+usize xcArrayBisect(XCArray *array, XCRef value, XCComparator compareFunc) {
     return xcArrayBisectEx(array, value, compareFunc, 0, array->len);
 }
 
-usize xcArrayBisectRight(XCArray *array, void *value, XCComparator compareFunc) {
+usize xcArrayBisectRight(XCArray *array, XCRef value, XCComparator compareFunc) {
     return xcArrayBisectRightEx(array, value, compareFunc, 0, array->len);
 }
 
-isize xcArrayBisectEx(XCArray *array, void *value, XCComparator compareFunc, usize lo, usize hi) {
+isize xcArrayBisectEx(XCArray *array, XCRef value, XCComparator compareFunc, usize lo, usize hi) {
     if (lo < 0 || hi < 0 || lo >= array->len || hi > array->len)
         return -1;
     while (lo < hi) {
         isize mid = (lo + hi) / 2;
-        void *arrValue = _xcArrayGetFast(array, mid);
+        XCRef arrValue = _xcArrayGetFast(array, mid);
         if (compareFunc(value, arrValue) > 0)
             lo = mid + 1;
         else
@@ -498,12 +498,12 @@ isize xcArrayBisectEx(XCArray *array, void *value, XCComparator compareFunc, usi
     return lo;
 }
 
-isize xcArrayBisectRightEx(XCArray *array, void *value, XCComparator compareFunc, usize lo, usize hi) {
+isize xcArrayBisectRightEx(XCArray *array, XCRef value, XCComparator compareFunc, usize lo, usize hi) {
     if (lo < 0 || hi < 0 || lo >= array->len || hi > array->len)
         return -1;
     while (lo < hi) {
         isize mid = (lo + hi) / 2;
-        void *arrValue = _xcArrayGetFast(array, mid);
+        XCRef arrValue = _xcArrayGetFast(array, mid);
         if (compareFunc(value, arrValue) < 0)
             hi = mid;
         else
