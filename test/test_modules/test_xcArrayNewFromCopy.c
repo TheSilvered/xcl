@@ -1,7 +1,7 @@
 #include "../test_lib/test.h"
 
 TestResult test_xcArrayNewFromCopy_empty(void) {
-    int cArr[0] = { };
+    int cArr[] = { 1 };
     XCArray *array = xcArrayNewFromCopy(sizeof(int), 0, cArr);
     TestResult result = TR_success;
     if (!array)

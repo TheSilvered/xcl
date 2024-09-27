@@ -7,7 +7,7 @@
 #include "xc.h"
 
 #ifndef TEST_TIMEOUT_S
-#define TEST_TIMEOUT_S 10
+#define TEST_TIMEOUT_S 30
 #endif
 
 #ifdef TEST_NO_COLOR

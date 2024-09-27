@@ -57,3 +57,4 @@ dkms.conf
 # Executable
 main
 test_main
+build/

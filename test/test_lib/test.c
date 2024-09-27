@@ -1,16 +1,12 @@
 #include <stdio.h>
-#include <pthread.h>
-#include <signal.h>
-#include <time.h>
 #include <string.h>
 #include "test.h"
 #include "xc.h"
 
-static struct {
-    usize count;
-    TestModule *list;
-    TestModule *current;
-} modules = { 0 };
+#ifndef TEST_NO_THREADS
+
+#include <signal.h>
+#include <time.h>
 
 static struct {
     clock_t startTime;
@@ -18,16 +14,79 @@ static struct {
     bool running;
 } currentTest = { 0 };
 
-static void sigChldHandler(int sig);
-static _Noreturn void *threadRoutine(void *func);
-static const char *parseArguments(int argc, char **argv);
+#ifdef _WIN32
 
-static _Noreturn void *threadRoutine(void *func) {
+#include <Windows.h>
+
+static DWORD threadRoutine(void *func) {
+    currentTest.result = ((TestFunc)func)();
+    currentTest.running = false;
+    while (true); // wait for TerminateThread
+}
+
+static TestResult threadedRun(TestFunc func) {
+    currentTest.startTime = clock();
+    currentTest.running = true;
+    currentTest.result = false;
+    HANDLE hThread = CreateThread(NULL, 0, threadRoutine, func, 0, NULL);
+    if (!hThread) {
+        TEST_LOG_FAILURE("Failed to create thread");
+        testExit();
+        exit(1);
+    }
+
+    while (((double)(clock() - currentTest.startTime)) / CLOCKS_PER_SEC <= TEST_TIMEOUT_S && currentTest.running) ;
+    if (!TerminateThread(hThread, 0)) {
+        TEST_LOG_FAILURE("Failed to kill thread.");
+        testExit();
+        exit(1);
+    }
+    if (currentTest.running)
+        currentTest.result = TR_timedOut;
+    return currentTest.result;
+}
+
+#else
+
+#include <pthread.h>
+
+static void sigChldHandler(int sig) {
+    pthread_exit(0);
+}
+
+static void *threadRoutine(void *func) {
     signal(SIGCHLD, sigChldHandler);
     currentTest.result = ((TestFunc)func)();
     currentTest.running = false;
     while (true); // wait for SIGCHLD
 }
+
+static TestResult threadedRun(TestFunc func) {
+    pthread_t thread;
+    currentTest.startTime = clock();
+    currentTest.running = true;
+    currentTest.result = false;
+    if (pthread_create(&thread, NULL, threadRoutine, func) != 0) {
+        TEST_LOG_FAILURE("Failed to create thread");
+        testExit();
+        exit(1);
+    }
+    while (((double)(clock() - currentTest.startTime)) / CLOCKS_PER_SEC <= TEST_TIMEOUT_S && currentTest.running) ;
+    pthread_kill(thread, SIGCHLD);
+    if (currentTest.running)
+        currentTest.result = TR_timedOut;
+    return currentTest.result;
+}
+
+#endif // !_WIN32
+
+#endif // !TEST_NO_THREADS
+
+static struct {
+    usize count;
+    TestModule *list;
+    TestModule *current;
+} modules = { 0 };
 
 void testRunModule(TestModule module, int *outPassed, int *outFailed, int *outIgnored) {
     printf(CYAN("Module '%s' (%zi tests):") "\n", module.name, module.testCount);
@@ -56,21 +115,13 @@ void testRunModule(TestModule module, int *outPassed, int *outFailed, int *outIg
 
 TestResult testRun(Test test) {
     printf("  Test '%s'... ", test.name);
-    pthread_t thread;
-    currentTest.startTime = clock();
-    currentTest.running = true;
-    currentTest.result = false;
-    if (pthread_create(&thread, NULL, threadRoutine, test.func) != 0) {
-        TEST_LOG_FAILURE("Failed to create thread");
-        testExit();
-        exit(1);
-    }
-    while (((double)(clock() - currentTest.startTime)) / CLOCKS_PER_SEC <= TEST_TIMEOUT_S && currentTest.running) ;
-    pthread_kill(thread, SIGCHLD);
-    if (currentTest.running)
-        currentTest.result = TR_timedOut;
 
-    switch (currentTest.result) {
+#ifndef TEST_NO_THREADS
+    TestResult result = threadedRun(test.func);
+#else
+    TestResult result = test.func();
+#endif
+    switch (result) {
     case TR_success:
         printf(GREEN("PASSED\n"));
         break;
@@ -88,11 +139,7 @@ TestResult testRun(Test test) {
         break;
     }
 
-    return currentTest.result;
-}
-
-static void sigChldHandler(int sig) {
-    pthread_exit(0);
+    return result;
 }
 
 void testExit(void) {
@@ -116,6 +163,7 @@ bool testIsFailure(TestResult result) {
     case TR_allocFailed:
         return true;
     }
+    return false;
 }
 
 void testSetModule(const char *name) {
@@ -149,17 +197,6 @@ void testAdd(Test test) {
     modules.current->tests = newTests;
     modules.current->tests[modules.current->testCount] = test;
     modules.current->testCount++;
-}
-
-static const char *parseArguments(int argc, char **argv) {
-    if (argc < 2)
-        return NULL;
-    else if (argc > 2) {
-        TEST_LOG_FAILURE("Too many arguments, usage: ./run_tests [test]");
-        testExit();
-        exit(1);
-    }
-    return (const char *)argv[1];
 }
 
 Test *testFind(const char *name) {

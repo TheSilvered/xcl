@@ -241,7 +241,7 @@ bool xcArraySwap(XCArray *array, isize index1, isize index2) {
     index1 = xcArrayIdxCheck(array, index1);
     index2 = xcArrayIdxCheck(array, index2);
     if (index1 < 0 || index2 < 0)
-        return NULL;
+        return false;
     _xcArraySwapFast(array, index1, index2);
     return true;
 }

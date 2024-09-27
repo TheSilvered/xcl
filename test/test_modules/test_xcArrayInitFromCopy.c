@@ -2,7 +2,7 @@
 
 TestResult test_xcArrayInitFromCopy_empty(void) {
     XCArray array;
-    int cArr[0] = { };
+    int cArr[] = { 1 };
     TestResult result = TR_success;
     if (!xcArrayInitFromCopy(&array, sizeof(int), 0, cArr))
         return TR_allocFailed;
