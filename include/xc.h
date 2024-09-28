@@ -189,7 +189,7 @@ XCLIB bool xcArrayInsert(XCArray *array, XCRef value, isize index);
 // Extend an `XCArray` with the data in `newData`.
 // `newDataLength` is the number of items in `newData`, the array's `unitSize` is used to
 // determine the size of the memory to copy.
-XCLIB bool xcArrayExtend(XCArray *array, XCMemBlock newData, usize newDataLength);
+XCLIB bool xcArrayExtend(XCArray *array, usize newDataLength, XCMemBlock newData);
 
 // === Item manipulation ===
 

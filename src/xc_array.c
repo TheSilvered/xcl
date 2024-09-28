@@ -205,7 +205,7 @@ bool xcArrayInsert(XCArray *array, XCRef value, isize index) {
     return true;
 }
 
-bool xcArrayExtend(XCArray *array, XCMemBlock newData, usize newDataLength) {
+bool xcArrayExtend(XCArray *array, usize newDataLength, XCMemBlock newData) {
     if (!_xcArrayExpand(array, newDataLength))
         return false;
     memcpy((u8 *)array->data + array->len * array->unitSize, newData, newDataLength * array->unitSize);
