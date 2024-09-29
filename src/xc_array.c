@@ -458,6 +458,8 @@ usize xcArrayRemoveFilter(XCArray *array, XCFilter filterFunc, XCDestructor item
 // === Iteration ===
 
 XCRef xcArrayNext(XCArray *array, XCRef value) {
+    if (array->len == 0)
+        return NULL;
     if (!value)
         return array->data;
     XCRef next = ((u8 *)value + array->unitSize);

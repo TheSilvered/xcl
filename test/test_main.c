@@ -8,6 +8,8 @@
 #include "test_modules/test_xcArrayNew.c"
 #include "test_modules/test_xcArrayNewFromCopy.c"
 #include "test_modules/test_xcArrayNewFromData.c"
+#include "test_modules/test_xcArrayDestroy.c"
+#include "test_modules/test_xcArrayFree.c"
 #include "test_modules/test_xcArrayGet.c"
 #include "test_modules/test_xcArrayFind.c"
 #include "test_modules/test_xcArrayFindAll.c"
@@ -28,6 +30,8 @@ int main(int argc, char **argv) {
     test_xcArrayNew__addTests();
     test_xcArrayNewFromCopy__addTests();
     test_xcArrayNewFromData__addTests();
+    test_xcArrayDestroy__addTests();
+    test_xcArrayFree__addTests();
     test_xcArrayGet__addTests();
     test_xcArrayFind__addTests();
     test_xcArrayFindAll__addTests();
