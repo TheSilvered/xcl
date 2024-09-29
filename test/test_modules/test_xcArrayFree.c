@@ -24,6 +24,7 @@ TestResult test_xcArrayFree_full(void) {
             xcArrayFree(array, test_xcArrayFree__freeRef);
             return TR_allocFailed;
         }
+        *num = i;
         xcArrayAppend(array, &num);
     }
 

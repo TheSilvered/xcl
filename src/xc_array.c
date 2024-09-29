@@ -223,7 +223,7 @@ bool xcArraySet(XCArray *array, XCRef value, isize index, XCDestructor itemDestr
     XCRef arrayValue = xcArrayGet(array, index);
     if (!arrayValue)
         return false;
-    if (itemDestroyFunc)
+    if (itemDestroyFunc && value != arrayValue)
         itemDestroyFunc(arrayValue);
     memcpy(arrayValue, value, array->unitSize);
     return true;

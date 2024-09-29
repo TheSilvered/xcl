@@ -24,6 +24,7 @@ TestResult test_xcArrayDestroy_full(void) {
             xcArrayDestroy(&array, test_xcArrayDestroy__freeRef);
             return TR_allocFailed;
         }
+        *num = i;
         xcArrayAppend(&array, &num);
     }
 
