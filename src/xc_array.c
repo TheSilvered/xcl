@@ -230,6 +230,8 @@ bool xcArraySet(XCArray *array, XCRef value, isize index, XCDestructor itemDestr
 }
 
 static inline void _xcArraySwapFast(XCArray *array, usize index1, usize index2) {
+    if (index1 == index2)
+        return;
     u8 *v1 = _xcArrayGetFast(array, index1);
     u8 *v2 = _xcArrayGetFast(array, index2);
     if (array->unitSize > STATIC_BUF_SIZE) {

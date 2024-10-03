@@ -18,6 +18,7 @@
 #include "test_modules/test_xcArrayInsert.c"
 #include "test_modules/test_xcArrayExtend.c"
 #include "test_modules/test_xcArraySet.c"
+#include "test_modules/test_xcArraySwap.c"
 
 static const char *parseArguments(int argc, char **argv);
 static bool runAllModules(void);
@@ -41,6 +42,7 @@ int main(int argc, char **argv) {
     test_xcArrayInsert__addTests();
     test_xcArrayExtend__addTests();
     test_xcArraySet__addTests();
+    test_xcArraySwap__addTests();
 
     int returnValue = 0;
     const char *specifiedTest = parseArguments(argc, argv);

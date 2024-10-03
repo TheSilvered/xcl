@@ -114,9 +114,9 @@ XCLIB int xcCompare_f64(XCRef a, XCRef b);
 // Dynamic array type.
 typedef struct XCArray {
     XCMemBlock data; // data pointer
-    usize unitSize;  // size of a single element in bytes
-    usize len;       // length
-    usize cap;       // capacity
+    usize unitSize;  // size of a single item in bytes
+    usize len;       // number of items in the array
+    usize cap;       // capacity, the maximum `len` reachable before a reallocation
 } XCArray;
 
 // A function that compares two values given their pointers.
@@ -270,7 +270,7 @@ typedef u8 XCBoolArrayChunk;
 
 // Gets the number of chunks needed for an `XCBoolArray` of a given length.
 // This can be used to create an `XCBoolArray` on the stack.
-// For example `XCBoolArrayChunk arr[xcBoolArraySize(10)]` creates a boolean array of size `10`.
+// For example `XCBoolArrayChunk arr[xcBoolArraySize(10)]` creates a boolean array of length `10`.
 #define xcBoolArraySize(length) ((length) / sizeof(XCBoolArrayChunk) + ((length) % sizeof(XCBoolArrayChunk) ? 1 : 0))
 
 // Create a new `XCBoolArray` of length `length`. All values are initialized to `false`.
@@ -292,14 +292,14 @@ XCLIB void xcBoolArraySetAll(XCBoolArray array, usize length, bool value);
 // A general string.
 typedef struct XCStr {
     char *data; // string data, it is not NUL-terminated
-    usize len;  // length in bytes of `data`
+    usize size; // size in bytes of `data`
     usize cap;  // capacity in bytes of `data`
 } XCStr;
 
 // A view into a general string.
 typedef struct XCStrView {
     char *data; // pointer to the data, the memory is not owned
-    usize len;  // length in bytes of `data`
+    usize size; // size in bytes of `data`
 } XCStrView;
 
 // === Creation & Initialization ===
@@ -308,18 +308,18 @@ typedef struct XCStrView {
 XCLIB bool xcStrInit(XCStr *str, const char *value);
 // Initialize an `XCStr` to be empty.
 XCLIB bool xcStrInitEmpty(XCStr *str);
-// Initialize an `XCStr` given its data and its length.
+// Initialize an `XCStr` given its data and its size.
 // The `data` must be a pointer to a heap-allocated block.
-XCLIB void xcStrInitFromData(XCStr *str, char *data, usize len);
+XCLIB void xcStrInitFromData(XCStr *str, char *data, usize size);
 // Create a new `XCStr` from a NUL-terminated string, the value is copied.
 XCLIB XCStr *xcStrNew(const char *value);
 // Create a new empty `XCStr`.
 XCLIB XCStr *xcStrNewEmpty(void);
-// Create a new `XCStr` given its data and its length.
-XCLIB XCStr *xcStrNewFromData(char *data, usize len);
+// Create a new `XCStr` given its data and its size.
+XCLIB XCStr *xcStrNewFromData(char *data, usize size);
 
 // Initialize a `XCStrView` from a `XCStr`
-XCLIB void xcStrViewFromXCStr(XCStrView *strView, XCStr *str);
+XCLIB void xcStrViewInitFromXCStr(XCStrView *strView, XCStr *str);
 
 // === Destruction ===
 

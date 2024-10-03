@@ -4,13 +4,13 @@
 #define MIN_STR_CAP 16
 
 bool xcStrInit(XCStr *str, const char *value) {
-    usize len = strlen(value);
-    str->data = malloc(len * sizeof(char));
+    usize size = strlen(value);
+    str->data = malloc(size * sizeof(char));
     if (!str->data)
         return false;
-    memcpy(str->data, value, len);
-    str->len = len;
-    str->cap = len;
+    memcpy(str->data, value, size);
+    str->size = size;
+    str->cap = size;
     return true;
 }
 
@@ -18,15 +18,15 @@ bool xcStrInitEmpty(XCStr *str) {
     str->data = malloc(MIN_STR_CAP * sizeof(char));
     if (!str->data)
         return false;
-    str->len = 0;
+    str->size = 0;
     str->cap = MIN_STR_CAP;
     return true;
 }
 
-void xcStrInitFromData(XCStr *str, char *data, usize len) {
+void xcStrInitFromData(XCStr *str, char *data, usize size) {
     str->data = data;
-    str->len = len;
-    str->cap = len;
+    str->size = size;
+    str->cap = size;
 }
 
 XCStr *xcStrNew(const char *value) {
@@ -51,17 +51,17 @@ XCStr *xcStrNewEmpty(void) {
     return str;
 }
 
-XCStr *xcStrNewFromData(char *data, usize len) {
+XCStr *xcStrNewFromData(char *data, usize size) {
     XCStr *str = malloc(sizeof(XCStr));
     if (!str)
         return NULL;
-    xcStrInitFromData(str, data, len);
+    xcStrInitFromData(str, data, size);
     return str;
 }
 
-void xcStrViewFromXCStr(XCStrView *strView, XCStr *str) {
+void xcStrViewInitFromXCStr(XCStrView *strView, XCStr *str) {
     strView->data = str->data;
-    strView->len = str->len;
+    strView->size = str->size;
 }
 
 void xcStrDestroy(XCStr *str) {

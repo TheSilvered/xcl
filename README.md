@@ -67,6 +67,16 @@ Any out parameters must be placed last and begin with `out`
 
 Any in-out parameters must be placed after all other parameters but before `out` parameters and must begin with `inout`.
 
+### `size` and `len`
+
+This terms should refer to two different concepts:
+
+- `size` is the size in bytes of any given block of data
+- `len` is the number of units (this term may refer to different things depending on the context) in any data structure
+
+For example the string `"aò"`, encoded in UTF-8, has a size of `3` (three bytes are needed to encode it), but a length
+of `2` (it is composed of two characters).
+
 ### Using `void *`
 
 Using `void *` is highly discouraged, use either `XCMemBlock` or `XCRef` to communicate intent more clearly.
