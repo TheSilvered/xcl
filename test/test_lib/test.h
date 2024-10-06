@@ -31,12 +31,23 @@
 #define TEST(func) (Test) { #func, func }
 #define TEST_LOG_FAILURE(msg, ...) fprintf(stderr, RED("FAILURE") " - "  msg "\n", ## __VA_ARGS__)
 
-typedef enum TestResult {
-    TR_failure,
-    TR_success,
-    TR_allocFailed,
-    TR_timedOut,
-    TR_ignored
+#define TR_failure (TestResult) { _TRT_failure, __LINE__ }
+#define TR_success (TestResult) { _TRT_success, -1 }
+#define TR_allocFailed (TestResult) { _TRT_allocFailed, __LINE__ }
+#define TR_timedOut (TestResult) { _TRT_timedOut, -1 }
+#define TR_ignored (TestResult) { _TRT_ignored, -1 }
+
+enum _TestResultType {
+    _TRT_failure,
+    _TRT_success,
+    _TRT_allocFailed,
+    _TRT_timedOut,
+    _TRT_ignored
+};
+
+typedef struct TestResult {
+    enum _TestResultType _type;
+    int _line;
 } TestResult;
 
 typedef TestResult (*TestFunc)(void);

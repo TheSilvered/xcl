@@ -273,7 +273,7 @@ static void _xcArrayMoveFast(XCArray *array, usize from, usize to) {
         XCRef valueFrom = _xcArrayGetFast(array, from);
         XCRef valueTo = _xcArrayGetFast(array, to);
         memcpy(staticBuf, valueFrom, unitSize);
-        memmove(valueFrom, valueFrom, (to - from) * unitSize);
+        memmove(valueFrom, (u8 *)valueFrom + unitSize, (to - from) * unitSize);
         memcpy(valueTo, staticBuf, unitSize);
     } else {
         if (unitSize > STATIC_BUF_SIZE) {

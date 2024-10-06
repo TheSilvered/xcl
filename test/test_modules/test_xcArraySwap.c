@@ -55,6 +55,7 @@ TestResult test_xcArraySwap_differentIndex(void) {
         return TR_failure;
     return TR_success;
 }
+
 TestResult test_xcArraySwap_differentIndexNegative(void) {
     XCArray array;
     int data[] = { 0, 1, 2, 3, 4 };
@@ -78,22 +79,16 @@ TestResult test_xcArraySwap_bigItem(void) {
     if (!xcArraySwap(&array, 0, 2))
         return TR_failure;
     for (int i = 0; i < 256; i++) {
-        if (data[0][i] != 240) {
-            printf("Failed for data[0][%d], value = %d\n", i, data[0][i]);
+        if (data[0][i] != 240)
             return TR_failure;
-        }
     }
     for (int i = 0; i < 256; i++) {
-        if (data[1][i] != 60) {
-            printf("Failed for data[1][%d], value = %d\n", i, data[1][i]);
+        if (data[1][i] != 60)
             return TR_failure;
-        }
     }
     for (int i = 0; i < 256; i++) {
-        if (data[2][i] != 15) {
-            printf("Failed for data[2][%d], value = %d\n", i, data[2][i]);
+        if (data[2][i] != 15)
             return TR_failure;
-        }
     }
     return TR_success;
 }

@@ -65,7 +65,7 @@ static TestResult threadedRun(TestFunc func) {
     pthread_t thread;
     currentTest.startTime = clock();
     currentTest.running = true;
-    currentTest.result = false;
+    currentTest.result = TR_ignored;
     if (pthread_create(&thread, NULL, threadRoutine, func) != 0) {
         TEST_LOG_FAILURE("Failed to create thread");
         testExit();
@@ -95,16 +95,16 @@ void testRunModule(TestModule module, int *outPassed, int *outFailed, int *outIg
     int testsFailed = 0;
     int testsIgnored = 0;
     for (usize j = 0; j < module.testCount; j++) {
-        switch (testRun(module.tests[j])) {
-        case TR_success:
+        switch (testRun(module.tests[j])._type) {
+        case _TRT_success:
             testsPassed++;
             break;
-        case TR_ignored:
+        case _TRT_ignored:
             testsIgnored++;
             break;
-        case TR_failure:
-        case TR_timedOut:
-        case TR_allocFailed:
+        case _TRT_failure:
+        case _TRT_timedOut:
+        case _TRT_allocFailed:
             testsFailed++;
         }
     }
@@ -123,20 +123,20 @@ TestResult testRun(Test test) {
 #else
     TestResult result = test.func();
 #endif
-    switch (result) {
-    case TR_success:
+    switch (result._type) {
+    case _TRT_success:
         printf(GREEN("PASSED\n"));
         break;
-    case TR_failure:
-        printf(RED("FAILED\n"));
+    case _TRT_failure:
+        printf(RED("FAILED ") "(line %d)\n", result._line);
         break;
-    case TR_ignored:
+    case _TRT_ignored:
         printf(GRAY("IGNORED\n"));
         break;
-    case TR_allocFailed:
-        printf(RED("MEMORY ALLOCATION FAILED\n"));
+    case _TRT_allocFailed:
+        printf(RED("MEMORY ALLOCATION FAILED ") "(line %d)\n", result._line);
         break;
-    case TR_timedOut:
+    case _TRT_timedOut:
         printf(RED("TIMED OUT\n"));
         break;
     }
@@ -156,13 +156,13 @@ void testExit(void) {
 }
 
 bool testIsFailure(TestResult result) {
-    switch (result) {
-    case TR_success:
-    case TR_ignored:
+    switch (result._type) {
+    case _TRT_success:
+    case _TRT_ignored:
         return false;
-    case TR_failure:
-    case TR_timedOut:
-    case TR_allocFailed:
+    case _TRT_failure:
+    case _TRT_timedOut:
+    case _TRT_allocFailed:
         return true;
     }
     return false;
