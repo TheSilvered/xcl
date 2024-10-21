@@ -5,22 +5,21 @@
 
 #ifdef malloc
 #undef malloc
-#endif
+#endif // !malloc
 
 #ifdef realloc
 #undef realloc
-#endif
+#endif // !realloc
 
 #ifdef free
 #undef free
-#endif
+#endif // !free
 
-usize xcDebug_BlockSize(XCMemBlock block)
-{
+XCLIB usize xcDebug_BlockSize(XCMemBlock block) {
     return *((usize *)block - 1);
 }
 
-XCMemBlock xcDebug_malloc(usize size) {
+XCLIB XCMemBlock xcDebug_malloc(usize size) {
     XCMemBlock ptr = malloc(size + sizeof(usize));
     if (!ptr)
         return ptr;
@@ -28,7 +27,7 @@ XCMemBlock xcDebug_malloc(usize size) {
     return (XCMemBlock)((usize *)ptr + 1);
 }
 
-XCMemBlock xcDebug_calloc(usize count, usize size) {
+XCLIB XCMemBlock xcDebug_calloc(usize count, usize size) {
     XCMemBlock ptr = xcDebug_malloc(count * size);
     if (!ptr)
         return ptr;
@@ -36,7 +35,7 @@ XCMemBlock xcDebug_calloc(usize count, usize size) {
     return ptr;
 }
 
-XCMemBlock xcDebug_realloc(XCMemBlock block, usize size) {
+XCLIB XCMemBlock xcDebug_realloc(XCMemBlock block, usize size) {
     XCMemBlock ptr;
     if (block)
         ptr = realloc((usize *)block - 1, size + sizeof(usize));
@@ -48,12 +47,8 @@ XCMemBlock xcDebug_realloc(XCMemBlock block, usize size) {
     return (XCMemBlock)((usize *)ptr + 1);
 }
 
-void xcDebug_free(XCMemBlock block) {
+XCLIB void xcDebug_free(XCMemBlock block) {
     free((usize *)block - 1);
 }
-
-#define malloc(size) xcDebug_malloc(size)
-#define realloc(block, size) xcDebug_realloc(block, size)
-#define free(block) xcDebug_free(block)
 
 #endif

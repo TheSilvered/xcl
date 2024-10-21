@@ -91,3 +91,123 @@ XCLIB int xcCompare_f64(XCRef a, XCRef b) {
         return 1;
     return 0;
 }
+
+XCLIB int xcMin_int(int a, int b) {
+    return b < a ? b : a;
+}
+
+XCLIB uint xcMin_uint(uint a, uint b) {
+    return b < a ? b : a;
+}
+
+XCLIB i8 xcMin_i8(i8 a, i8 b) {
+    return b < a ? b : a;
+}
+
+XCLIB u8 xcMin_u8(u8 a, u8 b) {
+    return b < a ? b : a;
+}
+
+XCLIB i16 xcMin_i16(i16 a, i16 b) {
+    return b < a ? b : a;
+}
+
+XCLIB u16 xcMin_u16(u16 a, u16 b) {
+    return b < a ? b : a;
+}
+
+XCLIB i32 xcMin_i32(i32 a, i32 b) {
+    return b < a ? b : a;
+}
+
+XCLIB u32 xcMin_u32(u32 a, u32 b) {
+    return b < a ? b : a;
+}
+
+XCLIB i64 xcMin_i64(i64 a, i64 b) {
+    return b < a ? b : a;
+}
+
+XCLIB u64 xcMin_u64(u64 a, u64 b) {
+    return b < a ? b : a;
+}
+
+XCLIB isize xcMin_isize(isize a, isize b) {
+    return b < a ? b : a;
+}
+
+XCLIB usize xcMin_usize(usize a, usize b) {
+    return b < a ? b : a;
+}
+
+XCLIB f32 xcMin_f32(f32 a, f32 b) {
+    return b < a ? b : a;
+}
+
+XCLIB f64 xcMin_f64(f64 a, f64 b) {
+    return b < a ? b : a;
+}
+
+XCLIB XCRef xcMin(XCRef a, XCRef b, XCComparator compareFunc) {
+    return compareFunc(b, a) < 0 ? b : a;
+}
+
+XCLIB int xcMax_int(int a, int b) {
+    return b > a ? b : a;
+}
+
+XCLIB uint xcMax_uint(uint a, uint b) {
+    return b > a ? b : a;
+}
+
+XCLIB i8 xcMax_i8(i8 a, i8 b) {
+    return b > a ? b : a;
+}
+
+XCLIB u8 xcMax_u8(u8 a, u8 b) {
+    return b > a ? b : a;
+}
+
+XCLIB i16 xcMax_i16(i16 a, i16 b) {
+    return b > a ? b : a;
+}
+
+XCLIB u16 xcMax_u16(u16 a, u16 b) {
+    return b > a ? b : a;
+}
+
+XCLIB i32 xcMax_i32(i32 a, i32 b) {
+    return b > a ? b : a;
+}
+
+XCLIB u32 xcMax_u32(u32 a, u32 b) {
+    return b > a ? b : a;
+}
+
+XCLIB i64 xcMax_i64(i64 a, i64 b) {
+    return b > a ? b : a;
+}
+
+XCLIB u64 xcMax_u64(u64 a, u64 b) {
+    return b > a ? b : a;
+}
+
+XCLIB isize xcMax_isize(isize a, isize b) {
+    return b > a ? b : a;
+}
+
+XCLIB usize xcMax_usize(usize a, usize b) {
+    return b > a ? b : a;
+}
+
+XCLIB f32 xcMax_f32(f32 a, f32 b) {
+    return b > a ? b : a;
+}
+
+XCLIB f64 xcMax_f64(f64 a, f64 b) {
+    return b > a ? b : a;
+}
+
+XCLIB XCRef xcMax(XCRef a, XCRef b, XCComparator compareFunc) {
+    return compareFunc(b, a) > 0 ? b : a;
+}
