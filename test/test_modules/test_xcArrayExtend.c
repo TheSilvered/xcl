@@ -1,4 +1,5 @@
-#include "../test_lib/test.h"
+#include "test.h"
+#include "xc.h"
 
 TestResult test_xcArrayExtend_empty(void) {
     int newData[] = { 1, 2, 3 };

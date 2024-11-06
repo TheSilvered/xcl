@@ -1,4 +1,5 @@
 #include "test.h"
+#include "xc.h"
 
 TestResult test_xcArrayInit_empty(void) {
     XCArray array;

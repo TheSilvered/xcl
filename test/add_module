@@ -11,7 +11,8 @@ if [ -e "test_modules/test_$1.c" ]; then
 fi
 
 touch "test_modules/test_$1.c"
-echo "#include \"../test_lib/test.h\"
+echo "#include \"test.h\"
+#include \"xc.h\"
 
 void test_${1}__addTests(void) {
     testSetModule(\"test_$1\");

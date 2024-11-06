@@ -105,7 +105,7 @@ XCLIB XCArrayView *xcArrayViewNewFromData(usize unitSize, usize count, XCMemBloc
     XCArrayView *view = malloc(sizeof(XCArrayView));
     if (!view)
         return NULL;
-    xcArrayViewInit(view, unitSize, count, data);
+    xcArrayViewInitFromData(view, unitSize, count, data);
     return view;
 }
 
@@ -114,10 +114,7 @@ XCLIB XCArrayView *xcArrayViewNewFromData(usize unitSize, usize count, XCMemBloc
 XCLIB void xcArrayDestroy(XCArray *array, XCDestructor itemDestroyFunc) {
     if (!array)
         return;
-    if (itemDestroyFunc) {
-        for (XCRef v = xcArrayNext(array, NULL); v; v = xcArrayNext(array, v))
-            itemDestroyFunc(v);
-    }
+    xcArrayClear(array, itemDestroyFunc);
     free(array->data);
 }
 
@@ -135,7 +132,7 @@ XCLIB void xcArrayViewFree(XCArrayView *view) {
 // === Item retrival ===
 
 static inline XCRef _xcArrayGetFast(XCArray *array, usize index) {
-    return (XCRef)((u8 *)array->data + index * array->unitSize);
+    return xcRawOffset(array->data, index * array->unitSize);
 }
 
 XCLIB XCRef xcArrayGet(XCArray *array, isize index) {
@@ -236,7 +233,7 @@ static inline bool _xcArrayExpand(XCArray *array, usize quantity) {
 static inline void _xcArrayShrink(XCArray *array) {
     if (array->len >= array->cap / 4)
         return;
-    usize newCap = array->cap / 2;
+    usize newCap = array->len * 2;
     if (newCap < MIN_ARRAY_CAP)
         return;
     XCMemBlock newData = realloc(array->data, newCap * array->unitSize);
@@ -249,7 +246,7 @@ static inline void _xcArrayShrink(XCArray *array) {
 XCLIB bool xcArrayAppend(XCArray *array, XCRef value) {
     if (!_xcArrayExpand(array, 1))
         return false;
-    memcpy((u8 *)array->data + array->len * array->unitSize, value, array->unitSize);
+    memcpy(xcRawOffset(array->data, array->len * array->unitSize), value, array->unitSize);
     array->len++;
     return true;
 }
@@ -267,7 +264,7 @@ XCLIB bool xcArrayInsert(XCArray *array, XCRef value, isize index) {
 XCLIB bool xcArrayExtend(XCArray *array, usize newDataLength, XCMemBlock newData) {
     if (!_xcArrayExpand(array, newDataLength))
         return false;
-    memcpy((u8 *)array->data + array->len * array->unitSize, newData, newDataLength * array->unitSize);
+    memcpy(xcRawOffset(array->data, array->len * array->unitSize), newData, newDataLength * array->unitSize);
     array->len += newDataLength;
     return true;
 }
@@ -332,7 +329,7 @@ static void _xcArrayMoveFast(XCArray *array, usize from, usize to) {
         XCRef valueFrom = _xcArrayGetFast(array, from);
         XCRef valueTo = _xcArrayGetFast(array, to);
         memcpy(staticBuf, valueFrom, unitSize);
-        memmove(valueFrom, (u8 *)valueFrom + unitSize, (to - from) * unitSize);
+        memmove(valueFrom, xcRawOffset(valueFrom, unitSize), (to - from) * unitSize);
         memcpy(valueTo, staticBuf, unitSize);
     } else {
         if (unitSize > STATIC_BUF_SIZE) {
@@ -343,7 +340,7 @@ static void _xcArrayMoveFast(XCArray *array, usize from, usize to) {
         XCRef valueFrom = _xcArrayGetFast(array, from);
         XCRef valueTo = _xcArrayGetFast(array, to);
         memcpy(staticBuf, valueFrom, unitSize);
-        memmove((u8 *)valueTo + unitSize, valueTo, (from - to) * unitSize);
+        memmove(xcRawOffset(valueTo, unitSize), valueTo, (from - to) * unitSize);
         memcpy(valueTo, staticBuf, unitSize);
     }
 }
@@ -468,10 +465,18 @@ XCLIB bool xcArrayDel(XCArray *array, isize index, XCDestructor itemDestroyFunc)
     if (index < 0)
         index += array->len;
     if (index != array->len - 1)
-        memmove(value, (u8 *)value + array->unitSize, (array->len - index - 1) * array->unitSize);
+        memmove(value, xcRawOffset(value, array->unitSize), (array->len - index - 1) * array->unitSize);
     array->len--;
     _xcArrayShrink(array);
     return true;
+}
+
+XCLIB void xcArrayClear(XCArray *array, XCDestructor itemDestroyFunc) {
+    if (!itemDestroyFunc)
+        return;
+
+    for (XCRef v = xcArrayNext(array, NULL); v; v = xcArrayNext(array, v))
+        itemDestroyFunc(v);
 }
 
 XCLIB bool xcArrayRemove(XCArray *array, XCRef value, XCComparator compareFunc, XCDestructor itemDestroyFunc) {
@@ -523,7 +528,7 @@ XCLIB XCRef xcArrayNext(XCArray *array, XCRef value) {
         return NULL;
     if (!value)
         return array->data;
-    XCRef next = ((u8 *)value + array->unitSize);
+    XCRef next = xcRawOffset(value, array->unitSize);
     if (next > _xcArrayGetFast(array, array->len -  1))
         return NULL;
     return next;

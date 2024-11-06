@@ -211,3 +211,51 @@ XCLIB f64 xcMax_f64(f64 a, f64 b) {
 XCLIB XCRef xcMax(XCRef a, XCRef b, XCComparator compareFunc) {
     return compareFunc(b, a) > 0 ? b : a;
 }
+
+XCLIB u32 xcHash_int(XCRef num) {
+    return (u32)((*(int *)num) & 0xFFFFFFFF);
+}
+
+XCLIB u32 xcHash_uint(XCRef num) {
+    return (u32)((*(uint *)num) & 0xFFFFFFFF);
+}
+
+XCLIB u32 xcHash_i8(XCRef num) {
+    return (u32)(*(i8 *)num);
+}
+
+XCLIB u32 xcHash_u8(XCRef num) {
+    return (u32)(*(u8 *)num);
+}
+
+XCLIB u32 xcHash_i16(XCRef num) {
+    return (u32)(*(i16 *)num);
+}
+
+XCLIB u32 xcHash_u16(XCRef num) {
+    return (u32)(*(u16 *)num);
+}
+
+XCLIB u32 xcHash_i32(XCRef num) {
+    return (u32)(*(i32 *)num);
+}
+
+XCLIB u32 xcHash_u32(XCRef num) {
+    return *(u32 *)num;
+}
+
+XCLIB u32 xcHash_i64(XCRef num) {
+    return (u32)((*(i64 *)num) & 0xFFFFFFFF);
+}
+
+XCLIB u32 xcHash_u64(XCRef num) {
+    return (u32)((*(u64 *)num) & 0xFFFFFFFF);
+}
+
+XCLIB u32 xcHash_isize(XCRef num) {
+    return (u32)((*(isize *)num) & 0xFFFFFFFF);
+}
+
+XCLIB u32 xcHash_usize(XCRef num) {
+    return (u32)((*(usize *)num) & 0xFFFFFFFF);
+}

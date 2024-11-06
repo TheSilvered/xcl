@@ -14,8 +14,11 @@
 // ------------------------
 
 // Get the offset in bytes of a field in a struct
-#define xcFieldOffset(struct, field) (usize)(&(((struct *)NULL)->field))
-
+#define xcFieldOffset(struct, field) ((usize)(&(((struct *)NULL)->field)))
+// Offset `ptr` by `bytes` bytes. The result is of type `void *`
+#define xcRawOffset(ptr, bytes) ((void *)((u8 *)(ptr) + (bytes)))
+// Get the reference of an rvalue. The result is of type `type *`
+#define xcIRef(type, value) ((type *)&(struct { type _; }){ ._ = (value) })
 
 // ------------------------
 // Type aliases
@@ -53,6 +56,8 @@ typedef int (*XCComparator)(XCRef a, XCRef b);
 typedef bool (*XCFilter)(XCRef);
 // A function that destroys a value given its pointer.
 typedef void (*XCDestructor)(XCRef);
+// A function that gets the hash of a value given its pointer.
+typedef u32 (*XCHasher)(XCRef);
 
 // ------------------------
 // Memory allocation
@@ -172,12 +177,36 @@ XCLIB f64 xcMax_f64(f64 a, f64 b);
 // If they are equal `a` is returned.
 XCLIB XCRef xcMax(XCRef a, XCRef b, XCComparator compareFunc);
 
+// Hash function for `int`
+XCLIB u32 xcHash_int(XCRef num);
+// Hash function for `uint`
+XCLIB u32 xcHash_uint(XCRef num);
+// Hash function for `i8`
+XCLIB u32 xcHash_i8(XCRef num);
+// Hash function for `u8`
+XCLIB u32 xcHash_u8(XCRef num);
+// Hash function for `i16`
+XCLIB u32 xcHash_i16(XCRef num);
+// Hash function for `u16`
+XCLIB u32 xcHash_u16(XCRef num);
+// Hash function for `i32`
+XCLIB u32 xcHash_i32(XCRef num);
+// Hash function for `u32`
+XCLIB u32 xcHash_u32(XCRef num);
+// Hash function for `i64`
+XCLIB u32 xcHash_i64(XCRef num);
+// Hash function for `u64`
+XCLIB u32 xcHash_u64(XCRef num);
+// Hash function for `isize`
+XCLIB u32 xcHash_isize(XCRef num);
+// Hash function for `usize`
+XCLIB u32 xcHash_usize(XCRef num);
 
 // ------------------------
 // Dynamic arrays
 // ------------------------
 
-// Dynamic array type.
+// Dynamic ordered array type.
 typedef struct XCArray {
     XCMemBlock data; // data pointer
     usize unitSize;  // size of a single item in bytes
@@ -310,6 +339,8 @@ XCLIB void xcArraySort(XCArray *array, XCComparator compareFunc);
 // `index` may be negative and `itemDestroyFunc` may be `NULL`.
 // If `index` is outisde the array `false` will be returned.
 XCLIB bool xcArrayDel(XCArray *array, isize index, XCDestructor itemDestroyFunc);
+// Remove all values from an `XCArray`, the removed values will be passed do `itemDestroyFunc`
+XCLIB void xcArrayClear(XCArray *array, XCDestructor itemDestroyFunc);
 // Remove the first value that matches `value` from an `XCArray`, the removed value is passed to `itemDestroyFunc`.
 // Return `true` if a value was removed and `false` otherwise.
 XCLIB bool xcArrayRemove(XCArray *array, XCRef value, XCComparator compareFunc, XCDestructor itemDestroyFunc);
@@ -410,6 +441,38 @@ XCLIB void xcBoolArraySet(XCBoolArray array, usize idx, bool value);
 // Set all values of an `XCBooleanArray` to `value`.
 XCLIB void xcBoolArraySetAll(XCBoolArray array, usize length, bool value);
 
+// ------------------------
+// Hash map
+// ------------------------
+
+typedef struct _XCMapItem _XCMapItem;
+
+// Dynamic unordered hash map type.
+typedef struct XCMap {
+    XCMemBlock data;          // key-value pairs data pointer
+    _XCMapItem **ptrTable;    // array of pointers to key-value pairs
+    XCHasher hashFunc;        // function used to hash the keys
+    XCComparator compareFunc; // function used to compare keys directly
+    usize keySize;            // size in bytes of a key
+    usize valueSize;          // size in bytes of a value
+    usize len;                // number of key-value pairs in the map
+    usize cap;                // capacity, the maximum `len` reachable before a reallocation
+} XCMap;
+
+XCLIB bool xcMapInit(XCMap *map, XCHasher hashFunc, XCComparator compareFunc, usize keySize, usize valueSize);
+XCLIB XCMap *xcMapNew(XCHasher hashFunc, XCComparator compareFunc, usize keySize, usize valueSize);
+
+XCLIB void xcMapDestroy(XCMap *map, XCDestructor destroyKey, XCDestructor destroyValue);
+XCLIB void xcMapFree(XCMap *map, XCDestructor destroyKey, XCDestructor destroyValue);
+
+XCLIB bool xcMapAdd(XCMap *map, XCRef key, XCRef value);
+XCLIB bool xcMapSet(XCMap *map, XCRef key, XCRef value, XCDestructor destroyKey, XCDestructor destroyValue);
+XCLIB bool xcMapDel(XCMap *map, XCRef key, XCDestructor destroyKey, XCDestructor destroyValue);
+XCLIB bool xcMapClear(XCMap *map, XCDestructor destroyKey, XCDestructor destroyValue);
+
+XCLIB XCRef xcMapGet(XCMap *map, XCRef key);
+
+XCLIB XCRef xcMapNext(XCMap *map, XCRef key);
 
 // -----------------------------
 // Strings & string manipulation

@@ -1,4 +1,5 @@
 #include "test.h"
+#include "xc.h"
 
 TestResult test_xcDebug_BlockSize_malloc(void) {
     XCMemBlock block = malloc(10);

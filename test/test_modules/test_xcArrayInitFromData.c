@@ -1,4 +1,5 @@
-#include "../test_lib/test.h"
+#include "test.h"
+#include "xc.h"
 
 TestResult test_xcArrayInitFromData_main(void) {
     XCArray array;

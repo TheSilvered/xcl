@@ -3,8 +3,10 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-// XC_DEBUG_MEM defined in command line
-#include "xc.h"
+
+#ifndef TEST_PREFIX
+#define TEST_PREFIX "test_"
+#endif // !TEST_PREFIX
 
 #ifndef TEST_TIMEOUT_S
 #define TEST_TIMEOUT_S 30
@@ -52,6 +54,7 @@ typedef struct TestResult {
 
 typedef TestResult (*TestFunc)(void);
 
+// A structure representing a test. Use the `TEST` macro to create a test from a function.
 typedef struct Test {
     const char *name;
     TestFunc func;
@@ -60,7 +63,7 @@ typedef struct Test {
 typedef struct TestModule {
     const char *name;
     Test *tests;
-    usize testCount;
+    size_t testCount;
 } TestModule;
 
 // Set the current module.
@@ -71,7 +74,7 @@ void testAdd(Test test);
 // Get the list of all modules added
 TestModule *testGetModules(void);
 // Get the number of modules added
-usize testGetModuleCount(void);
+size_t testGetModuleCount(void);
 
 // Run a module, the number of elements in each category is added to the correct pointer
 void testRunModule(TestModule module, int *outPassed, int *outFailed, int *outIgnored);

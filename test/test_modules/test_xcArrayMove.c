@@ -1,4 +1,5 @@
-#include "../test_lib/test.h"
+#include "test.h"
+#include "xc.h"
 
 TestResult test_xcArrayMove_sameIndex(void) {
     XCArray array;

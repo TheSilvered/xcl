@@ -1,5 +1,6 @@
-#include "../test_lib/test.h"
 #include <string.h>
+#include "test.h"
+#include "xc.h"
 
 TestResult test_xcArraySwap_sameIndex(void) {
     XCArray array;

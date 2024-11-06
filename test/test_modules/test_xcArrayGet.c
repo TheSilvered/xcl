@@ -1,4 +1,5 @@
-#include "../test_lib/test.h"
+#include "test.h"
+#include "xc.h"
 
 TestResult test_xcArrayGet_positiveInBounds(void) {
     XCArray array;

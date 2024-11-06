@@ -1,4 +1,5 @@
 #include "test.h"
+#include "xc.h"
 
 TestResult test_xcCompare_int(void) {
     int a = 5, b = 2, c = 5;

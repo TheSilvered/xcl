@@ -1,4 +1,6 @@
 #include "test_xcCompare.c"
+#include "test_xcMin.c"
+#include "test_xcMax.c"
 #include "test_xcDebug_BlockSize.c"
 #include "test_xcArrayInit.c"
 #include "test_xcArrayInitFromCopy.c"
@@ -21,6 +23,8 @@
 
 void addTests(void) {
     test_xcCompare__addTests();
+    test_xcMin__addTests();
+    test_xcMax__addTests();
     test_xcDebug_BlockSize__addTests();
     test_xcArrayInit__addTests();
     test_xcArrayInitFromCopy__addTests();

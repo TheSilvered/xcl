@@ -1,4 +1,5 @@
-#include "../test_lib/test.h"
+#include "test.h"
+#include "xc.h"
 
 TestResult test_xcArrayFind_oneMatch(void) {
     XCArray array;

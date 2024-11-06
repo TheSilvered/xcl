@@ -1,4 +1,5 @@
-#include "../test_lib/test.h"
+#include "test.h"
+#include "xc.h"
 
 static bool filter(XCRef value) {
     return *(int *)value == 3;

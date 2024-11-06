@@ -1,4 +1,5 @@
-#include "../test_lib/test.h"
+#include "test.h"
+#include "xc.h"
 
 static void test_xcArrayDestroy__freeRef(XCRef ref) {
     free(*(int **)ref);

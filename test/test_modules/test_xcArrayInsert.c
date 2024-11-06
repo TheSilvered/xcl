@@ -1,4 +1,5 @@
-#include "../test_lib/test.h"
+#include "test.h"
+#include "xc.h"
 
 TestResult test_xcArrayInsert_middle(void) {
     int data[] = { 0, 1, 2, 4, 5 };

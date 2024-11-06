@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "test.h"
-#include "xc.h"
 
 #ifndef TEST_NO_THREADS
 
@@ -27,7 +27,7 @@ static DWORD threadRoutine(void *func) {
 static TestResult threadedRun(TestFunc func) {
     currentTest.startTime = clock();
     currentTest.running = true;
-    currentTest.result = false;
+    currentTest.result = TR_ignored;
     HANDLE hThread = CreateThread(NULL, 0, threadRoutine, func, 0, NULL);
     if (!hThread) {
         TEST_LOG_FAILURE("Failed to create thread");
@@ -83,7 +83,7 @@ static TestResult threadedRun(TestFunc func) {
 #endif // !TEST_NO_THREADS
 
 static struct {
-    usize count;
+    size_t count;
     TestModule *list;
     TestModule *current;
 } modules = { 0 };
@@ -94,7 +94,7 @@ void testRunModule(TestModule module, int *outPassed, int *outFailed, int *outIg
     int testsPassed = 0;
     int testsFailed = 0;
     int testsIgnored = 0;
-    for (usize j = 0; j < module.testCount; j++) {
+    for (size_t j = 0; j < module.testCount; j++) {
         switch (testRun(module.tests[j])._type) {
         case _TRT_success:
             testsPassed++;
@@ -147,7 +147,7 @@ TestResult testRun(Test test) {
 void testExit(void) {
     if (!modules.list)
         return;
-    for (usize i = 0; i < modules.count; i++) {
+    for (size_t i = 0; i < modules.count; i++) {
         TestModule module = modules.list[i];
         if (module.tests)
             free(module.tests);
@@ -217,12 +217,12 @@ Test *testFind(const char *name) {
     if (!module)
         return NULL;
 
-    memcpy(buf, "test_", 5);
+    memcpy(buf, TEST_PREFIX, strlen(TEST_PREFIX));
     memcpy(buf + 5, name, strlen(name));
     buf[5 + (slash - name)] = '_';
 
     printf("Searching for test '%s'...\n", buf);
-    for (usize i = 0; i < module->testCount; i++) {
+    for (size_t i = 0; i < module->testCount; i++) {
         Test *test = &module->tests[i];
         if (strcmp(buf, test->name) == 0)
             return test;
@@ -237,11 +237,11 @@ TestModule *testFindModule(const char *name) {
         testExit();
         exit(2);
     }
-    memcpy(buf, "test_", 5);
+    memcpy(buf, TEST_PREFIX, strlen(TEST_PREFIX));
     strcpy(buf + 5, name);
     printf("Searching for module '%s'...\n", buf);
     fflush(stdout);
-    for (usize i = 0; i < modules.count; i++) {
+    for (size_t i = 0; i < modules.count; i++) {
         TestModule *module = &modules.list[i];
         if (strcmp(buf, module->name) == 0)
             return module;
@@ -253,6 +253,6 @@ TestModule *testGetModules(void) {
     return modules.list;
 }
 
-usize testGetModuleCount(void) {
+size_t testGetModuleCount(void) {
     return modules.count;
 }
