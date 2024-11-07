@@ -529,6 +529,10 @@ XCLIB XCStr *xcStrNewEmpty(void);
 // Create a new `XCStr` given its data and its size.
 XCLIB XCStr *xcStrNewFromData(char *data, usize size);
 
+// Initialize an `XCStrView` from a NUL-terminated string, the value is referenced, not copied.
+XCLIB void xcStrViewInit(XCStrView *strView, const char *value);
+// Create a new `XCStrView` from a NUL-terminated string, the value is copied.
+XCLIB XCStrView xcStrViewMake(const char *value);
 // Initialize a `XCStrView` from a `XCStr`
 XCLIB void xcStrViewInitFromXCStr(XCStrView *strView, XCStr *str);
 
@@ -538,5 +542,13 @@ XCLIB void xcStrViewInitFromXCStr(XCStrView *strView, XCStr *str);
 XCLIB void xcStrDestroy(XCStr *str);
 // Free an `XCStr` from memory.
 XCLIB void xcStrFree(XCStr *str);
+
+// === Hashing ===
+
+XCLIB u32 xcStrHash(XCRef str);
+
+// === Comparison ===
+
+XCLIB int xcStrCompare(XCRef str1, XCRef str2);
 
 #endif // !XC_H

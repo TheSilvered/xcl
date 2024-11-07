@@ -193,6 +193,7 @@ static void _xcMapAddNew(XCMap *map, u32 hash, XCRef key, XCRef value) {
     _XCMapItem *item = xcRawOffset(map->data, itemSize * map->len);
     _xcMapItemInit(item, hash, key, value, map);
     _xcMapReInsert(map, item);
+    map->len++;
 }
 
 // Re-insert an item already inside `data`
@@ -233,6 +234,7 @@ XCLIB bool xcMapAdd(XCMap *map, XCRef key, XCRef value) {
             item = xcRawOffset(map->data, itemSize * map->len);
             _xcMapItemInit(item, hash, key, value, map);
             ptrTable[idx_i] = item;
+            map->len++;
             return true;
         }
         if (item->hash != hash)
@@ -267,6 +269,7 @@ XCLIB bool xcMapSet(XCMap *map, XCRef key, XCRef value, XCDestructor destroyKeyF
             item = xcRawOffset(map->data, itemSize * map->len);
             _xcMapItemInit(item, hash, key, value, map);
             ptrTable[idx_i] = item;
+            map->len++;
             return true;
         }
         if (item->hash != hash)
@@ -274,8 +277,10 @@ XCLIB bool xcMapSet(XCMap *map, XCRef key, XCRef value, XCDestructor destroyKeyF
         if (compareFunc(key, _xcMapItemGetKey(item)) != 0)
             continue;
         // item already in map, substitute the old key and value with the new ones
-        destroyKey(_xcMapItemGetKey(item));
-        destroyValue(_xcMapItemGetValue(item, map));
+        if (destroyKeyFunc)
+            destroyKeyFunc(_xcMapItemGetKey(item));
+        if (destroyValueFunc)
+            destroyValueFunc(_xcMapItemGetValue(item, map));
         _xcMapItemInit(item, hash, key, value, map);
         return true;
     }
@@ -315,6 +320,7 @@ XCLIB bool xcMapDel(XCMap *map, XCRef key, XCDestructor destroyKey, XCDestructor
 
         usize itemSize = _xcMapItemGetSize(map);
         memcpy(item, xcRawOffset(map->data, itemSize * (map->len - 1)), itemSize);
+        map->len--;
         return true;
     }
     // the map is full but the item was not found
@@ -330,9 +336,9 @@ static void _xcMapClearOnly(XCMap *map, XCDestructor destroyKeyFunc, XCDestructo
     for (usize i = 0, n = map->len; i < n; i++) {
         _XCMapItem *item = xcRawOffset(data, itemSize * i);
         if (destroyKeyFunc)
-            destroyKey(_xcMapItemGetKey(item));
+            destroyKeyFunc(_xcMapItemGetKey(item));
         if (destroyValueFunc) {
-            destroyValue(_xcMapItemGetValue(item, map));
+            destroyValueFunc(_xcMapItemGetValue(item, map));
         }
     }
 }

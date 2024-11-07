@@ -76,3 +76,37 @@ XCLIB void xcStrFree(XCStr *str) {
     xcStrDestroy(str);
     free(str);
 }
+
+XCLIB u32 xcStrHash(XCRef str) {
+    // Fowler–Noll–Vo 32-bit hash function
+
+    char *data = ((XCStr *)str)->data;
+    usize size = ((XCStr *)str)->size;
+
+    u32 hash = 0x811c9dc5;
+
+    for (usize i = 0; i < size; i++) {
+        hash ^= (u32)data[i];
+        hash *= 0x01000193;
+    }
+
+    return hash;
+}
+
+XCLIB int xcStrCompare(XCRef str1, XCRef str2) {
+    char *p1 = ((XCStr *)str1)->data;
+    char *p2 = ((XCStr *)str2)->data;
+    usize size1 = ((XCStr *)str1)->size;
+    usize size2 = ((XCStr *)str2)->size;
+
+    usize i = 0;
+
+    for (usize i = 0; i < size1 && i < size2; i++) {
+        if (p1[i] != p2[i])
+            return (u8)p1[i] < (u8)p2[i] ? -1 : 1;
+    }
+
+    if (size1 == size2)
+        return 0;
+    return size1 < size2 ? -1 : 1;
+}

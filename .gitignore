@@ -54,7 +54,7 @@ dkms.conf
 # VSCode
 .vscode/
 
-# Executable
+# Executables
 main
 test_main
 build/
