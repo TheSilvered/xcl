@@ -64,6 +64,10 @@ int main(void) {
             delKey(&map);
         else if (strcmp(msg, "list") == 0)
             listKeys(&map);
+        else if (strcmp(msg, "cap") == 0)
+            printf("map.cap = %zi\n", map.cap);
+        else if (strcmp(msg, "len") == 0)
+            printf("map.len = %zi\n", map.len);
         else if (strcmp(msg, "exit") == 0)
             break;
         else

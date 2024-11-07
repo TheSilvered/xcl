@@ -171,23 +171,21 @@ XCLIB XCRef xcMapGet(XCMap *map, XCRef key) {
     for (int i = 0; i < map_cap; i++) {
         usize idx_i = (idx + (2*idx + 1) * i) & mask;
         _XCMapItem *item = ptrTable[idx_i];
-        if (!item) // item not in map
+        if (!item)
             return NULL;
         if (item->hash != hash)
             continue;
         if (compareFunc(key, _xcMapItemGetKey(item)) != 0)
             continue;
-        // Item found!
         return _xcMapItemGetValue(item, map);
     }
-    // the map is full but the item was not found
     return NULL;
 }
 
 // === Item addition & Manipulation ===
 
 // Add a key-value pair that is certainly not in the map
-// The map must have at least a free slot
+// The map must have at least one free slot
 static void _xcMapAddNew(XCMap *map, u32 hash, XCRef key, XCRef value) {
     usize itemSize = _xcMapItemGetSize(map);
     _XCMapItem *item = xcRawOffset(map->data, itemSize * map->len);
@@ -229,7 +227,7 @@ XCLIB bool xcMapAdd(XCMap *map, XCRef key, XCRef value) {
     for (int i = 0; i < map_cap; i++) {
         usize idx_i = (idx + (2*idx + 1) * i) & mask;
         _XCMapItem *item = ptrTable[idx_i];
-        if (!item) { // item not in map & idx_i is the first free available slot
+        if (!item) {
             usize itemSize = _xcMapItemGetSize(map);
             item = xcRawOffset(map->data, itemSize * map->len);
             _xcMapItemInit(item, hash, key, value, map);
@@ -241,7 +239,6 @@ XCLIB bool xcMapAdd(XCMap *map, XCRef key, XCRef value) {
             continue;
         if (compareFunc(key, _xcMapItemGetKey(item)) != 0)
             continue;
-        // item already in map
         return false;
     }
     // the map is full but the item was not found
@@ -264,7 +261,7 @@ XCLIB bool xcMapSet(XCMap *map, XCRef key, XCRef value, XCDestructor destroyKeyF
     for (int i = 0; i < map_cap; i++) {
         usize idx_i = (idx + (2*idx + 1) * i) & mask;
         _XCMapItem *item = ptrTable[idx_i];
-        if (!item) { // item not in map & idx_i is the first free available slot
+        if (!item) {
             usize itemSize = _xcMapItemGetSize(map);
             item = xcRawOffset(map->data, itemSize * map->len);
             _xcMapItemInit(item, hash, key, value, map);
@@ -305,13 +302,12 @@ XCLIB bool xcMapDel(XCMap *map, XCRef key, XCDestructor destroyKey, XCDestructor
     for (int i = 0; i < map_cap; i++) {
         usize idx_i = (idx + (2*idx + 1) * i) & mask;
         _XCMapItem *item = ptrTable[idx_i];
-        if (!item) // item not in map
+        if (!item)
             return false;
         if (item->hash != hash)
             continue;
         if (compareFunc(key, _xcMapItemGetKey(item)) != 0)
             continue;
-        // Item found!
 
         if (destroyKey)
             destroyKey(_xcMapItemGetKey(item));
@@ -321,9 +317,12 @@ XCLIB bool xcMapDel(XCMap *map, XCRef key, XCDestructor destroyKey, XCDestructor
         usize itemSize = _xcMapItemGetSize(map);
         memcpy(item, xcRawOffset(map->data, itemSize * (map->len - 1)), itemSize);
         map->len--;
+
+        // shrink if less than 1/4 full
+        if (map->len <= map->cap >> 2 && map->cap > MIN_MAP_CAP)
+            _xcMapReallocData(map, map->cap >> 1);
         return true;
     }
-    // the map is full but the item was not found
     return NULL;
 }
 
@@ -364,6 +363,7 @@ XCLIB XCRef xcMapNext(XCMap *map, XCRef key, XCRef *outValue) {
     }
     usize itemSize = _xcMapItemGetSize(map);
     key = xcRawOffset(key, itemSize);
+    // if `key` is beyond the last item
     if ((usize)key - (usize)map->data > map->len * itemSize) {
         if (outValue)
             *outValue = NULL;
