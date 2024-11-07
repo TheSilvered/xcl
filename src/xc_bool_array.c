@@ -10,15 +10,15 @@ XCLIB void xcBoolArrayFree(XCBoolArray array) {
 }
 
 XCLIB bool xcBoolArrayGet(XCBoolArray array, usize idx) {
-    return (bool)(array[idx / 8] & (1 << (idx % 8)));
+    return (bool)(array[idx >> 3] & (1 << (idx & 0b111)));
 }
 
 XCLIB void xcBoolArraySet(XCBoolArray array, usize idx, bool value) {
-    u8 byte = array[idx / 8];
+    u8 byte = array[idx >> 3];
     if (value)
-        array[idx / 8] = byte | (1 << (idx % 8));
+        array[idx >> 3] = byte | (1 << (idx & 0b111));
     else
-        array[idx / 8] = byte & ~(1 << (idx % 8));
+        array[idx >> 3] = byte & ~(1 << (idx & 0b111));
 }
 
 XCLIB void xcBoolArraySetAll(XCBoolArray array, usize length, bool value) {

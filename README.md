@@ -50,6 +50,8 @@ Functions containing these words should behave consistently:
 
 - `Init`: initializes the contents of a type but does not allocate it
 - `New`: initializes the contents of a type on a new heap-allocated instance
+- `Make`: initializes the contents of a type on a new stack-allocated instance, this kind of function can only be
+  implemented when the initialization cannot fail (e.g. it does not allocate memory)
 - `Destroy`: destroys the contents of a type, does not free the pointer passed to it (inverse of `Init`)
 - `Free`: destroys the contents of a type and frees the pointer passed to it (inverse of `New`)
 - `Next`: used to iterate over a type

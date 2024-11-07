@@ -14,6 +14,7 @@ static void _xcArrayMoveFast(XCArray *array, usize from, usize to);
 static void _xcInsertionSort(XCArray *array, XCComparator compareFunc, usize start, usize end);
 static void _xcInPlaceMergeSort(XCArray *array, XCComparator compareFunc, usize start, usize middle, usize end);
 static void _xcMergeSort(u8 *tempBuf, XCArray *array, XCComparator compareFunc, usize start, usize middle, usize end);
+static void _xcArrayClearOnly(XCArray *array, XCDestructor itemDestroyFunc);
 
 // === Creation & Initialization ===
 
@@ -109,12 +110,24 @@ XCLIB XCArrayView *xcArrayViewNewFromData(usize unitSize, usize count, XCMemBloc
     return view;
 }
 
+XCLIB XCArrayView xcArrayViewMake(XCArray *array, isize from, isize to) {
+    XCArrayView view;
+    xcArrayViewInit(&view, array, from, to);
+    return view;
+}
+
+XCLIB XCArrayView xcArrayViewMakeFromData(usize unitSize, usize count, XCMemBlock data) {
+    XCArrayView view;
+    xcArrayViewInitFromData(&view, unitSize, count, data);
+    return view;
+}
+
 // === Destruction ===
 
 XCLIB void xcArrayDestroy(XCArray *array, XCDestructor itemDestroyFunc) {
     if (!array)
         return;
-    xcArrayClear(array, itemDestroyFunc);
+    _xcArrayClearOnly(array, itemDestroyFunc);
     free(array->data);
 }
 
@@ -231,7 +244,7 @@ static inline bool _xcArrayExpand(XCArray *array, usize quantity) {
 }
 
 static inline void _xcArrayShrink(XCArray *array) {
-    if (array->len >= array->cap / 4)
+    if (array->len >= array->cap >> 2)
         return;
     usize newCap = array->len * 2;
     if (newCap < MIN_ARRAY_CAP)
@@ -358,7 +371,7 @@ static void _xcInsertionSort(XCArray *array, XCComparator compareFunc, usize sta
     for (usize i = start + 1; i < end; i++) {
         XCRef movingValue = _xcArrayGetFast(array, i);
         usize finalIndex = i;
-        for (usize j = i - 1; j >= start; j--) {
+        for (isize j = i - 1; j >= (isize)start; j--) {
             XCRef sortedValue = _xcArrayGetFast(array, j);
             if (compareFunc(movingValue, sortedValue) < 0)
                 finalIndex = j;
@@ -434,6 +447,8 @@ static void _xcMergeSort(u8 *tempBuf, XCArray *array, XCComparator compareFunc, 
 
 XCLIB void xcArraySort(XCArray *array, XCComparator compareFunc) {
     usize arrLen = array->len;
+    if (arrLen == 0)
+        return;
     for (usize i = 0; i < arrLen; i += SORT_RUN_SIZE)
         _xcInsertionSort(array, compareFunc, i, i + SORT_RUN_SIZE > arrLen ? arrLen : i + SORT_RUN_SIZE);
 
@@ -471,12 +486,17 @@ XCLIB bool xcArrayDel(XCArray *array, isize index, XCDestructor itemDestroyFunc)
     return true;
 }
 
-XCLIB void xcArrayClear(XCArray *array, XCDestructor itemDestroyFunc) {
+static void _xcArrayClearOnly(XCArray *array, XCDestructor itemDestroyFunc) {
     if (!itemDestroyFunc)
         return;
 
     for (XCRef v = xcArrayNext(array, NULL); v; v = xcArrayNext(array, v))
         itemDestroyFunc(v);
+}
+
+XCLIB void xcArrayClear(XCArray *array, XCDestructor itemDestroyFunc) {
+    _xcArrayClearOnly(array, itemDestroyFunc);
+    _xcArrayShrink(array);
 }
 
 XCLIB bool xcArrayRemove(XCArray *array, XCRef value, XCComparator compareFunc, XCDestructor itemDestroyFunc) {

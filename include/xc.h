@@ -14,7 +14,7 @@
 // ------------------------
 
 // Get the offset in bytes of a field in a struct
-#define xcFieldOffset(struct, field) ((usize)(&(((struct *)NULL)->field)))
+#define xcFieldOffset(struct_, field) ((usize)(&(((struct_ *)NULL)->field)))
 // Offset `ptr` by `bytes` bytes. The result is of type `void *`
 #define xcRawOffset(ptr, bytes) ((void *)((u8 *)(ptr) + (bytes)))
 // Get the reference of an rvalue. The result is of type `type *`
@@ -257,6 +257,13 @@ XCLIB XCArrayView *xcArrayViewNew(XCArray *array, isize from, isize to);
 // `count` refers to the number of items in `data`, `unitSize` to the size in bytes of a single item.
 XCLIB XCArrayView *xcArrayViewNewFromData(usize unitSize, usize count, XCMemBlock data);
 
+// Create a new `XCArrayView` from an `XCArray` that references indices from `from` included to `to` excluded.
+// If the indices are outside the array they will be clamped to fit.
+XCLIB XCArrayView xcArrayViewMake(XCArray *array, isize from, isize to);
+// Create a new `XCArrayView` from a block of data.
+// `count` refers to the number of items in `data`, `unitSize` to the size in bytes of a single item.
+XCLIB XCArrayView xcArrayViewMakeFromData(usize unitSize, usize count, XCMemBlock data);
+
 // === Destruction ===
 
 // Destroy an `XCArray`, the array itself is not freed. All remaining items are passed to `itemDestroyFunc`.
@@ -420,10 +427,10 @@ XCLIB isize xcArrayViewBisectRightEx(XCArrayView *view, XCRef value, XCComparato
 // Boolean array
 // ------------------------
 
-// A compacted boolean array (1 bit per boolean)
-typedef u8 *XCBoolArray;
 // A chunk of booleans in a boolean array.
 typedef u8 XCBoolArrayChunk;
+// A compacted boolean array (1 bit per boolean)
+typedef XCBoolArrayChunk *XCBoolArray;
 
 // Gets the number of chunks needed for an `XCBoolArray` of a given length.
 // This can be used to create an `XCBoolArray` on the stack.
@@ -459,24 +466,39 @@ typedef struct XCMap {
     usize cap;                // capacity, the maximum `len` reachable before a reallocation
 } XCMap;
 
+// === Creation & Initialization ===
+
 XCLIB bool xcMapInit(XCMap *map, XCHasher hashFunc, XCComparator compareFunc, usize keySize, usize valueSize);
 XCLIB XCMap *xcMapNew(XCHasher hashFunc, XCComparator compareFunc, usize keySize, usize valueSize);
+
+// === Destruction ===
 
 XCLIB void xcMapDestroy(XCMap *map, XCDestructor destroyKey, XCDestructor destroyValue);
 XCLIB void xcMapFree(XCMap *map, XCDestructor destroyKey, XCDestructor destroyValue);
 
-XCLIB bool xcMapAdd(XCMap *map, XCRef key, XCRef value);
-XCLIB bool xcMapSet(XCMap *map, XCRef key, XCRef value, XCDestructor destroyKey, XCDestructor destroyValue);
-XCLIB bool xcMapDel(XCMap *map, XCRef key, XCDestructor destroyKey, XCDestructor destroyValue);
-XCLIB bool xcMapClear(XCMap *map, XCDestructor destroyKey, XCDestructor destroyValue);
+// === Item retrival ===
 
 XCLIB XCRef xcMapGet(XCMap *map, XCRef key);
 
-XCLIB XCRef xcMapNext(XCMap *map, XCRef key);
+// === Item addition & Manipulation ===
 
-// -----------------------------
-// Strings & string manipulation
-// -----------------------------
+XCLIB bool xcMapAdd(XCMap *map, XCRef key, XCRef value);
+XCLIB bool xcMapSet(XCMap *map, XCRef key, XCRef value, XCDestructor destroyKeyFunc, XCDestructor destroyValueFunc);
+
+// === Item removal ===
+
+// Deletes the key-value pair containig `key`.
+// After this operation any reference to a key or value in the map becomes invalid as the values might have moved.
+XCLIB bool xcMapDel(XCMap *map, XCRef key, XCDestructor destroyKeyFunc, XCDestructor destroyValueFunc);
+XCLIB void xcMapClear(XCMap *map, XCDestructor destroyKeyFunc, XCDestructor destroyValueFunc);
+
+// === Iteration ===
+
+XCLIB XCRef xcMapNext(XCMap *map, XCRef key, XCRef *outValue);
+
+// ------------------------
+// Strings
+// ------------------------
 
 // A general string.
 typedef struct XCStr {
