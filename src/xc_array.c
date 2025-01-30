@@ -234,7 +234,8 @@ XCLIB usize xcArrayViewFilter(XCArrayView *view, XCFilter filterFunc, XCRef **ou
 static inline bool _xcArrayExpand(XCArray *array, usize quantity) {
     if (array->len + quantity <= array->cap)
         return true;
-    usize newCap = (usize)((double)(array->len + quantity) * 1.5);
+    usize cap = array->len + quantity;
+    usize newCap = cap + (cap >> 1); // Expand capacity by 1.5
     XCMemBlock newData = realloc(array->data, newCap * array->unitSize);
     if (!newData)
         return false;

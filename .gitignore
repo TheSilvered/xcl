@@ -58,3 +58,7 @@ dkms.conf
 main
 test_main
 build/
+
+# Other
+\[ignore\]*
+\[ignore\]*/

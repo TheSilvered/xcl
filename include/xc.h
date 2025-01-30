@@ -29,7 +29,7 @@ typedef signed char        i8;
 typedef unsigned char      u8;
 typedef short              i16;
 typedef unsigned short     u16;
-typedef long               i32;
+typedef int                i32;
 typedef unsigned long      u32;
 typedef long long          i64;
 typedef unsigned long long u64;
@@ -497,19 +497,62 @@ XCLIB void xcMapClear(XCMap *map, XCDestructor destroyKeyFunc, XCDestructor dest
 XCLIB XCRef xcMapNext(XCMap *map, XCRef key, XCRef *outValue);
 
 // ------------------------
+// Unicode support
+// ------------------------
+
+// Character information
+typedef struct XCUnicodeChInfo {
+    u32 lower, upper, title; // case mappings, to be used in `xcUnicodeExpandCase`
+    u32 flags;               // flags, a bitmap of XC_UCD_MASK_* flags
+} XCUnicodeChInfo;
+
+// Mask for the Uppercase property flag
+#define XC_UCD_MASK_UPPERCASE    0x0001
+// Mask for the Lowercase property flag
+#define XC_UCD_MASK_LOWERCASE    0x0002
+// Mask for the Cased property flag
+#define XC_UCD_MASK_CASED        0x0004
+// Mask for the Alphabetic property flag
+#define XC_UCD_MASK_ALPHABETIC   0x0008
+// Mask for the Numeric_Type=Decimal flag
+#define XC_UCD_MASK_DECIMAL      0x0010
+// Mask for the Numeric_Type=Digit flag
+#define XC_UCD_MASK_DIGIT        0x0020
+// Mask for the Numeric_Type=Numeric flag
+#define XC_UCD_MASK_NUMERIC      0x0040
+// Mask for the XID_Start property flag
+#define XC_UCD_MASK_XID_START    0x0080
+// Mask for the XID_Continue property flag
+#define XC_UCD_MASK_XID_CONTINUE 0x0100
+// Mask for characters in categories L, N, P, S, Zs
+#define XC_UCD_MASK_PRINTABLE    0x0200
+
+// Maximum number of characters that `xcUnicodeExpandCase` can produce
+#define XC_MAX_CASE_EXPANSION 3
+
+// Get information about a Unicode codepoint.
+XCUnicodeChInfo xcUnicodeGetChInfo(u32 codepoint);
+// Casefold a Unicode codepoint.
+// Returns the number of characters written. The result is never larger than `XC_MAX_CASE_EXPANSION`.
+// `casing` must be one of `upper`, `lower` or `title` in `XCUnicodeChInfo`.
+// `outCodepoints` is filled with the result codepoints. If it is `NULL` the function returns the number of codepoints
+// that would be written.
+usize xcUnicodeExpandCase(u32 codepoint, u32 casing, u32 *outCodepoints);
+
+// ------------------------
 // Strings
 // ------------------------
 
-// A general string.
+// A UTF-8 encoded string.
 typedef struct XCStr {
-    char *data; // string data, it is not NUL-terminated
+    u8 *data;   // string data, it is not NUL-terminated
     usize size; // size in bytes of `data`
     usize cap;  // capacity in bytes of `data`
 } XCStr;
 
 // A view into a general string.
 typedef struct XCStrView {
-    char *data; // pointer to the data, the memory is not owned
+    u8 *data;   // pointer to the data, the memory is not owned
     usize size; // size in bytes of `data`
 } XCStrView;
 
@@ -521,13 +564,13 @@ XCLIB bool xcStrInit(XCStr *str, const char *value);
 XCLIB bool xcStrInitEmpty(XCStr *str);
 // Initialize an `XCStr` given its data and its size.
 // The `data` must be a pointer to a heap-allocated block.
-XCLIB void xcStrInitFromData(XCStr *str, char *data, usize size);
+XCLIB void xcStrInitFromData(XCStr *str, u8 *data, usize size);
 // Create a new `XCStr` from a NUL-terminated string, the value is copied.
 XCLIB XCStr *xcStrNew(const char *value);
 // Create a new empty `XCStr`.
 XCLIB XCStr *xcStrNewEmpty(void);
 // Create a new `XCStr` given its data and its size.
-XCLIB XCStr *xcStrNewFromData(char *data, usize size);
+XCLIB XCStr *xcStrNewFromData(u8 *data, usize size);
 
 // Initialize an `XCStrView` from a NUL-terminated string, the value is referenced, not copied.
 XCLIB void xcStrViewInit(XCStrView *strView, const char *value);
@@ -550,5 +593,9 @@ XCLIB u32 xcStrHash(XCRef str);
 // === Comparison ===
 
 XCLIB int xcStrCompare(XCRef str1, XCRef str2);
+
+// === Addition ===
+
+XCLIB bool xcStrAppendUnicode(XCStr *str, u32 *codes, usize codeCount);
 
 #endif // !XC_H
