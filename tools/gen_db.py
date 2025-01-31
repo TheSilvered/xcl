@@ -5,8 +5,7 @@ import os
 UCD_DIR = "ucd16"
 DB_PATH = "src/xc_unicode_db.c"
 
-# NOTE: Keep xc.h updated
-# These values are printed in form of #define's later
+# NOTE: Keep in sync with xc.h
 MASK_UPPERCASE = 0x01
 MASK_LOWERCASE = 0x02
 MASK_CASED = 0x04
@@ -17,230 +16,6 @@ MASK_NUMERIC = 0x40
 MASK_XID_START = 0x80
 MASK_XID_CONTINUE = 0x100
 MASK_PRINTABLE = 0x200
-
-print(f"UCD_DIR: {os.getcwd()}/{UCD_DIR}")
-print(f"DB_PATH: {os.getcwd()}/{DB_PATH}\n\n")
-
-def data_lines(f, final_semicolon: bool):
-    content = f.read().split('\n')
-    for line in content:
-        if not line or line.lstrip().startswith("#"):
-            continue
-        values = list(map(str.strip, line.split("#")[0].split(";")))
-        yield values[:-1] if final_semicolon else values
-
-
-class CodePoint:
-    def __init__(self, value: str | int):
-        if type(value) is str:
-            value = int(value.strip(), 16)
-        if value > 0x10FFFF or value < 0:
-            raise ValueError(f"{value:04X} is not a valid codepoint")
-        self.value = value
-
-    def __eq__(self, other) -> bool:
-        if type(other) == CodePoint:
-            return self.value == other.value
-        else:
-            return NotImplemented
-
-    def __hash__(self):
-        return hash(self.value)
-
-    def __repr__(self):
-        return f"{self.value:04X}"
-
-    def __str__(self):
-        return repr(self)
-
-
-class CodePointRange:
-    def __init__(self, value: str | int, stop: int | None = None):
-        if type(value) is int:
-            start = value
-        else:
-            start, stop = value.strip().split("..")
-            start = int(start, 16)
-            stop = int(stop, 16)
-        self.start = start
-        self.stop = stop
-
-    def __contains__(self, cp):
-        return self.start <= cp.value <= self.stop
-
-    def __lt__(self, other):
-        if type(other) == CodePoint:
-            return other.value < self.start
-        return NotImplemented
-
-    def __gt__(self, other):
-        if type(other) == CodePoint:
-            return other.value > self.stop
-        return NotImplemented
-
-    def __repr__(self):
-        return f"{self.start:04X}..{self.stop:04X}"
-
-    def __str__(self):
-        return repr(self)
-
-
-@dataclass
-class UnicodeDataEntry:
-    code: CodePoint
-    name: str | None
-    general_category: str | None
-    numeric_type: str | None
-    numeric_value: int | float | None
-    simple_uppercase_mapping: CodePoint
-    simple_lowercase_mapping: CodePoint
-    simple_titlecase_mapping: CodePoint
-
-
-class UnicodeData:
-    def __init__(self, f):
-        self.chars = {}
-        for (
-            code, name, general_category,
-            _, _, _,
-            num6, num7, num8, *_,
-            upper, lower, title
-        ) in data_lines(f, False):
-            code = CodePoint(code)
-            if "<" in name or not name:
-                name = None
-            upper = CodePoint(upper) if upper else code
-            lower = CodePoint(lower) if lower else code
-            title = CodePoint(title) if title else upper
-            numeric_type = None
-            numeric_value = None
-            if num6:
-                numeric_type = "Decimal"
-                numeric_value = int(num6)
-            elif num7:
-                numeric_type = "Digit"
-                numeric_value = int(num7)
-            elif num8:
-                numeric_type = "Numeric"
-                numeric_value = float(Fraction(num8))
-            self.chars[code] = UnicodeDataEntry(
-                code,
-                name,
-                general_category,
-                numeric_type,
-                numeric_value,
-                upper,
-                lower,
-                title
-            )
-
-    def __getitem__(self, cp):
-        return self.chars[cp]
-
-    def get(self, cp, default=None):
-        return self.chars.get(cp, default)
-
-    def __contains__(self, item):
-        return item in self.chars
-
-
-class DerivedCoreProperties:
-    def __init__(self, f):
-        self.chars = {}
-
-        for rng, *prop in data_lines(f, False):
-            if "." in rng:
-                start, end = rng.split("..")
-                rng = range(int(start, 16), int(end, 16) + 1)
-            else:
-                rng = range(int(rng, 16), int(rng, 16) + 1)
-
-            for ch in rng:
-                ch = CodePoint(ch)
-                match prop:
-                    case ["Uppercase"]:    prop_value = MASK_UPPERCASE
-                    case ["Lowercase"]:    prop_value = MASK_LOWERCASE
-                    case ["Cased"]:        prop_value = MASK_CASED
-                    case ["Alphabetic"]:   prop_value = MASK_ALPHABETIC
-                    case ["XID_Start"]:    prop_value = MASK_XID_START
-                    case ["XID_Continue"]: prop_value = MASK_XID_CONTINUE
-                    case _: continue
-                self.chars[ch] = self.chars.get(ch, 0) | prop_value
-
-    def __getitem__(self, cp):
-        return self.chars.get(cp, 0)
-
-
-@dataclass
-class SpecialCasingEntry:
-    code: CodePoint
-    lower: list[CodePoint]
-    title: list[CodePoint]
-    upper: list[CodePoint]
-
-
-class SpecialCasing:
-    def __init__(self, f):
-        self.chars: dict[CodePoint, SpecialCasingEntry] = {}
-        for code, lower, upper, title, *conditions in data_lines(f, True):
-            if len(conditions) != 0:
-                continue
-            code = CodePoint(code)
-            self.chars[code] = SpecialCasingEntry(
-                code,
-                [CodePoint(int(cp, 16)) for cp in lower.split()],
-                [CodePoint(int(cp, 16)) for cp in upper.split()],
-                [CodePoint(int(cp, 16)) for cp in title.split()]
-            )
-
-    def __contains__(self, cp) -> bool:
-        return cp in self.chars
-
-    def __getitem__(self, cp) -> SpecialCasingEntry:
-        return self.chars[cp]
-
-    def get(self, cp, default=None):
-        return self.chars.get(cp, default)
-
-
-class Character:
-    def __init__(self, cp: CodePoint, derived_core_properties, unicode_data, special_casing, special_casing_list):
-        self.code = cp
-        self.properties = derived_core_properties[cp]
-        data = unicode_data[cp]
-        match data.numeric_type:
-            case "Decimal": self.properties |= MASK_DECIMAL
-            case "Digit":   self.properties |= MASK_DIGIT
-            case "Numeric": self.properties |= MASK_NUMERIC
-
-        if data.general_category[0] in "LNPS" or data.general_category == "Zs":
-            self.properties |= MASK_PRINTABLE
-
-        if cp in special_casing:
-            casing = special_casing[cp]
-            self.lower = casing.lower
-            self.upper = casing.upper
-            self.title = casing.title
-        else:
-            self.lower = [data.simple_lowercase_mapping]
-            self.upper = [data.simple_uppercase_mapping]
-            self.title = [data.simple_titlecase_mapping]
-
-        upper = self.add_special_casing(self.upper, special_casing_list)
-        lower = self.add_special_casing(self.lower, special_casing_list)
-        title = self.add_special_casing(self.title, special_casing_list)
-        self.general_props = (lower, upper, title, self.properties)
-
-    def add_special_casing(self, casing, special_casing_list):
-        if len(casing) == 1:
-            return casing[0].value - self.code.value
-        if len(casing) > 255:
-            raise ValueError("cannot encode special casings that expand to more than 255 characters")
-        idx = len(special_casing_list)
-        special_casing_list.append(casing[0].value | ((len(casing) & 0xFF) << 24))
-        special_casing_list.extend((x.value for x in casing[1:]))
-        assert idx + 0xFF_FF_FF < 0xFF_FF_FF_FF
-        return idx + 0xFF_FF_FF
 
 
 class UnicodeDBWriter:
@@ -318,7 +93,158 @@ class UnicodeDBWriter:
         self.file.close()
 
 
-def check_best_shift(unicode_data: UnicodeData, prop_index_byte_size, min_shift=4, max_shift=10):
+@dataclass
+class SpecialCasingEntry:
+    code: int
+    lower: list[int]
+    upper: list[int]
+    title: list[int]
+
+
+@dataclass
+class UnicodeDataEntry:
+    code: int
+    name: str | None
+    general_category: str | None
+    numeric_type: str | None
+    numeric_value: int | float | None
+    simple_lowercase_mapping: int
+    simple_uppercase_mapping: int
+    simple_titlecase_mapping: int
+
+
+def data_lines(f, final_semicolon: bool):
+    content = f.read().split("\n")
+    for line in content:
+        if not line or line.lstrip().startswith("#"):
+            continue
+        values = list(map(str.strip, line.split("#")[0].split(";")))
+        yield values[:-1] if final_semicolon else values
+
+
+def code_point(value: str | int) -> int:
+    if type(value) is str:
+        value = int(value.strip(), 16)
+    if value > 0x10FFFF or value < 0:
+        raise ValueError(f"{value:04X} is not a valid codepoint")
+    return value
+
+
+def make_unicode_data(file) -> dict[int, UnicodeDataEntry]:
+    chars = {}
+    for (
+        code, name, general_category,
+        _, _, _,
+        num6, num7, num8, *_,
+        upper, lower, title
+    ) in data_lines(file, False):
+        code = code_point(code)
+        if "<" in name or not name:
+            name = None
+        upper = code_point(upper) if upper else code
+        lower = code_point(lower) if lower else code
+        title = code_point(title) if title else upper
+        numeric_type = None
+        numeric_value = None
+        if num6:
+            numeric_type = "Decimal"
+            numeric_value = int(num6)
+        elif num7:
+            numeric_type = "Digit"
+            numeric_value = int(num7)
+        elif num8:
+            numeric_type = "Numeric"
+            numeric_value = float(Fraction(num8))
+        chars[code] = UnicodeDataEntry(
+            code=code,
+            name=name,
+            general_category=general_category,
+            numeric_type=numeric_type,
+            numeric_value=numeric_value,
+            simple_lowercase_mapping=lower,
+            simple_uppercase_mapping=upper,
+            simple_titlecase_mapping=title
+        )
+    return chars
+
+
+def make_core_properties(file):
+    chars = {}
+
+    for rng, *prop in data_lines(file, False):
+        if ".." in rng:
+            start, end = rng.split("..")
+            rng = range(code_point(start), code_point(end) + 1)
+        else:
+            rng = code_point(rng)
+            rng = range(rng, rng + 1)
+
+        for ch in rng:
+            match prop:
+                case ["Lowercase"]:    prop_value = MASK_LOWERCASE
+                case ["Uppercase"]:    prop_value = MASK_UPPERCASE
+                case ["Cased"]:        prop_value = MASK_CASED
+                case ["Alphabetic"]:   prop_value = MASK_ALPHABETIC
+                case ["XID_Start"]:    prop_value = MASK_XID_START
+                case ["XID_Continue"]: prop_value = MASK_XID_CONTINUE
+                case _: continue
+            chars[ch] = chars.get(ch, 0) | prop_value
+    return chars
+
+
+def make_special_casing(file) -> dict[int, SpecialCasingEntry]:
+    chars = {}
+    for code, lower, upper, title, *conditions in data_lines(file, True):
+        if len(conditions) != 0:
+            continue
+        code = code_point(code)
+        chars[code] = SpecialCasingEntry(
+            code=code,
+            lower=[code_point(cp) for cp in lower.split()],
+            upper=[code_point(cp) for cp in upper.split()],
+            title=[code_point(cp) for cp in title.split()]
+        )
+    return chars
+
+
+def make_character_props(data, core_properties, special_casing, special_casing_list):
+    code = data.code
+    match data.numeric_type:
+        case "Decimal": core_properties |= MASK_DECIMAL
+        case "Digit":   core_properties |= MASK_DIGIT
+        case "Numeric": core_properties |= MASK_NUMERIC
+
+    if data.general_category[0] in "LNPS" or data.general_category == "Zs":
+        core_properties |= MASK_PRINTABLE
+
+    if special_casing is not None:
+        lower = special_casing.lower
+        upper = special_casing.upper
+        title = special_casing.title
+    else:
+        lower = [data.simple_lowercase_mapping]
+        upper = [data.simple_uppercase_mapping]
+        title = [data.simple_titlecase_mapping]
+
+    upper = add_special_casing(code, upper, special_casing_list)
+    lower = add_special_casing(code, lower, special_casing_list)
+    title = add_special_casing(code, title, special_casing_list)
+    return lower, upper, title, core_properties
+
+
+def add_special_casing(code, casing, special_casing_list):
+    if len(casing) == 1:
+        return casing[0] - code
+    if len(casing) > 255:
+        raise ValueError("cannot encode special casings that expand to more than 255 characters")
+    idx = len(special_casing_list)
+    special_casing_list.append(casing[0] | ((len(casing) & 0xFF) << 24))
+    special_casing_list.extend(casing[1:])
+    assert idx + 0xFF_FF_FF < 0xFF_FF_FF_FF
+    return idx + 0xFF_FF_FF
+
+
+def check_best_shift(unicode_data, prop_index_byte_size, min_shift=4, max_shift=10):
     # Total memory occupied:
     #
     # tot_size = sizeof(UnicodeChBlocksIdx) + sizeof(UnicodeChBlocks)
@@ -339,11 +265,11 @@ def check_best_shift(unicode_data: UnicodeData, prop_index_byte_size, min_shift=
 
     best_shift = min_shift
     best_blocks_size = 0
-    for i in range(max_shift - min_shift):
+    for i in range(max_shift - min_shift + 1):
         blocks = set()
         shift = i + min_shift
-        for ch in unicode_data.chars:
-            blocks.add(ch.value >> (i + min_shift))
+        for ch in unicode_data:
+            blocks.add(ch >> (i + min_shift))
         block_count = len(blocks)
         tot_size = ((0x10FFFF>>shift) + 1) * byte_size(block_count) + 2**shift * prop_index_byte_size * block_count
         if i == 0:
@@ -360,7 +286,7 @@ def check_best_shift(unicode_data: UnicodeData, prop_index_byte_size, min_shift=
 def byte_size(n):
     if n <= 255:
         return 1
-    elif n <= 65536:
+    elif n <= 65535:
         return 2
     else:
         return 4
@@ -395,31 +321,9 @@ def generate_file(blocks, block_table, shift, shift_mask, special_casing_list, p
         else:
             unicode_ch_blocks_idx_data.append(len(blocks) + 1)
 
-    print(f"// Mask for the Uppercase property flag")
-    print(f"#define XC_UCD_MASK_UPPERCASE    0x{MASK_UPPERCASE:04X}")
-    print(f"// Mask for the Lowercase property flag")
-    print(f"#define XC_UCD_MASK_LOWERCASE    0x{MASK_LOWERCASE:04X}")
-    print(f"// Mask for the Cased property flag")
-    print(f"#define XC_UCD_MASK_CASED        0x{MASK_CASED:04X}")
-    print(f"// Mask for the Alphabetic property flag")
-    print(f"#define XC_UCD_MASK_ALPHABETIC   0x{MASK_ALPHABETIC:04X}")
-    print(f"// Mask for the Numeric_Type=Decimal flag")
-    print(f"#define XC_UCD_MASK_DECIMAL      0x{MASK_DECIMAL:04X}")
-    print(f"// Mask for the Numeric_Type=Digit flag")
-    print(f"#define XC_UCD_MASK_DIGIT        0x{MASK_DIGIT:04X}")
-    print(f"// Mask for the Numeric_Type=Numeric flag")
-    print(f"#define XC_UCD_MASK_NUMERIC      0x{MASK_NUMERIC:04X}")
-    print(f"// Mask for the XID_Start property flag")
-    print(f"#define XC_UCD_MASK_XID_START    0x{MASK_XID_START:04X}")
-    print(f"// Mask for the XID_Continue property flag")
-    print(f"#define XC_UCD_MASK_XID_CONTINUE 0x{MASK_XID_CONTINUE:04X}")
-    print(f"// Mask for characters in categories L, N, P, S, Zs")
-    print(f"#define XC_UCD_MASK_PRINTABLE    0x{MASK_PRINTABLE:04X}")
-    print()
-    print(f"// Maximum number of characters that `xcUnicodeExpandCase` can produce")
     print(f"#define XC_MAX_CASE_EXPANSION {max_expansion_len}")
 
-    with UnicodeDBWriter(f"{DB_PATH}", None) as db_f:
+    with UnicodeDBWriter(DB_PATH, None) as db_f:
         db_f.write_code(f"""
             #include <xc.h>
 
@@ -494,23 +398,26 @@ def generate_file(blocks, block_table, shift, shift_mask, special_casing_list, p
 
 
 def main():
+    print(f"UCD_DIR: {os.getcwd()}/{UCD_DIR}")
+    print(f"DB_PATH: {os.getcwd()}/{DB_PATH}\n")
+
     with open(f"{UCD_DIR}/UnicodeData.txt", encoding="utf8") as f:
-        unicode_data = UnicodeData(f)
+        unicode_data = make_unicode_data(f)
 
     with open(f"{UCD_DIR}/SpecialCasing.txt", encoding="utf8") as f:
-        special_casing = SpecialCasing(f)
+        special_casing = make_special_casing(f)
 
     with open(f"{UCD_DIR}/DerivedCoreProperties.txt", encoding="utf8") as f:
-        derived_core_properties = DerivedCoreProperties(f)
+        core_properties = make_core_properties(f)
 
-    chars = []
+    chars = {}
     special_casing_list = []
     props = set()
 
-    for ch in unicode_data.chars:
-        ch = Character(ch, derived_core_properties, unicode_data, special_casing, special_casing_list)
-        chars.append(ch)
-        props.add(ch.general_props)
+    for ch, data in unicode_data.items():
+        ch_props = make_character_props(data, core_properties.get(ch, 0), special_casing.get(ch), special_casing_list)
+        chars[ch] = ch_props
+        props.add(ch_props)
 
     props = [(0, 0, 0, 0)] + list(props)
     props_table = {prop: i for i, prop in enumerate(props)}
@@ -521,8 +428,8 @@ def main():
     block_table = {}
     idx = 0
 
-    for ch in chars:
-        block_key = ch.code.value >> shift
+    for ch, ch_props in chars.items():
+        block_key = ch >> shift
         if block_key not in blocks:
             block = {}
             blocks[block_key] = block
@@ -530,7 +437,7 @@ def main():
             idx += 1
         else:
             block = blocks[block_key]
-        block[ch.code.value & shift_mask] = props_table[ch.general_props]
+        block[ch & shift_mask] = props_table[ch_props]
 
     generate_file(blocks, block_table, shift, shift_mask, special_casing_list, props)
 
